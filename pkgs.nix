@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   userName,
   ...
@@ -13,21 +14,67 @@ with pkgs; {
   ];
   environment.systemPackages =
     [
+      (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+      (writeShellScriptBin "list-git-vars" "${lib.getExe bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe git} var -l | sort)")
+      aide
+      alejandra
+      bat
+      coreutils
+      direnv
+      dmidecode
+      docker-credential-helpers
+      expect
+      fd
+      file
+      glxinfo
+      gnugrep
+      gnumake
+      gnupg
+      gnused
+      hddtemp
+      inxi
+      ipmitool
+      jless
+      jless
+      lsb-release
+      lsd
+      lsof
+      lynis
+      mtr
+      navi
       neovim
+      ossec
+      parallel
+      pass
+      pinentry
+      ranger
+      ripgrep
+      shellcheck
+      skim
+      ssh-copy-id
+      sysstat
+      tmux
+      topgrade
+      tree
+      unrar
+      unzip
+      usbutils
+      w3m
+      whois
+      yubikey-manager
+      zip
+      zoxide
+    ]
+    ++ lib.optionals (config.services.xserver.enable) (with pkgs; [
       arandr
+      scrot
       firefox
       feh
       flameshot
-      inxi
-      jless
       alacritty
-      topgrade
       kitty
-      lsd
-      lynis
-      scrot
-      w3m
-      whois
+      yubikey-personalization-gui
+      (writeShellScriptBin "fix-display" "exec ${lib.getExe xorg.xrandr} --output eDP-1 --auto --output DP-1 --off --output DP-2 --off --output HDMI-1 --off \"$@\"")
       xbindkeys
       xclip
       xdotool
@@ -35,55 +82,9 @@ with pkgs; {
       xorg.xprop
       xorg.xmodmap
       xorg.xwd
-      yubikey-manager
-      yubikey-personalization-gui
       zathura
 
-      ossec
-      navi
-      skim
-      zoxide
-      aide
-      dmidecode
-      hddtemp
-      ipmitool
-      glxinfo
-      sysstat
-      docker-credential-helpers
-      (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-      (writeShellScriptBin "fix-display" "exec ${lib.getExe xorg.xrandr} --output eDP-1 --auto --output DP-1 --off --output DP-2 --off --output HDMI-1 --off \"$@\"")
-      (writeShellScriptBin "list-git-vars" "${lib.getExe bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe git} var -l | sort)")
-      bat
-      coreutils
-      direnv
-      expect
-      fd
-      file
-      gnugrep
-      gnumake
-      gnupg
-      pass
-      gnused
-      jless
-      lsb-release
-      lsof
-      mtr
-      alejandra
-      nixpkgs-fmt
-      pinentry
-      ranger
-      ripgrep
-      shellcheck
-      ssh-copy-id
-      tmux
-      tree
-      unrar
-      unzip
-      usbutils
-      w3m
-      whois
-      zip
-    ]
+    ])
     ++ lib.optionals (builtins.hasAttr "do-nixpkgs" pkgs) (with pkgs.do-nixpkgs; [
       (writeShellScriptBin "data_bags" "cd ~/do/chef/data_bags && ${lib.getExe jless} $(find . -mindepth 1 -type f -name '*.json' | ${skim}/bin/sk)")
       (writeShellScriptBin "do-vpn" (lib.concatStringsSep " " [

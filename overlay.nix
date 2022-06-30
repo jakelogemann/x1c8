@@ -47,9 +47,31 @@
         };
         customRC = ''
           colorscheme onedarkpro
-          set nocompatible autoread
-          set backspace=indent,eol,start
+          set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
+          set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
+          set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax
+          set backspace=indent,eol,start background=dark
           let mapleader=' '
+
+          if has("user_commands")
+            command! -bang -nargs=? -complete=file E e<bang> <args>
+            command! -bang -nargs=? -complete=file W w<bang> <args>
+            command! -bang -nargs=? -complete=file Wq wq<bang> <args>
+            command! -bang -nargs=? -complete=file WQ wq<bang> <args>
+            command! -bang Wa wa<bang>
+            command! -bang WA wa<bang>
+            command! -bang Q q<bang>
+            command! -bang QA qa<bang>
+            command! -bang Qa qa<bang>
+          endif
+
+          function! NumberToggle()
+            if(&relativenumber == 1) set nu nornu
+            else set nonu rnu 
+            endif
+          endfunc
+
+          nnoremap <leader>r :call NumberToggle()<cr>
           nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
           nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
           nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
