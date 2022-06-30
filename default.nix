@@ -19,6 +19,8 @@ nixpkgs.lib.nixosSystem rec {
     stateVersion = "22.05";
     hostName = "laptop";
     userName = "jlogemann";
+    userEmail = "jlogemann@digitalocean.com";
+    userFullName = "Jake Logemann";
   };
   modules = [
     ({
@@ -118,11 +120,12 @@ nixpkgs.lib.nixosSystem rec {
         programs.git.config.aliases.st = "status -uno";
         programs.git.config.commit.gpgSign = false;
         programs.git.config.core.pager = lib.getExe pkgs.delta;
+        programs.git.config.core.editor = lib.getExe pkgs.neovim;
         programs.git.config.interactive.difffilter = "${lib.getExe pkgs.delta} --color-only";
         programs.git.config.pull.ff = true;
         programs.git.config.pull.rebase = true;
-        programs.git.config.user.email = "jlogemann@digitalocean.com";
-        programs.git.config.user.name = "Jake Logemann";
+        programs.git.config.user.email = specialArgs.userEmail;
+        programs.git.config.user.name = specialArgs.userFullName;
         programs.git.config.init.defaultBranch = "main";
         programs.git.config.url."https://github.com/".insteadOf = ["gh:" "github:"];
         programs.git.enable = true;
@@ -136,6 +139,7 @@ nixpkgs.lib.nixosSystem rec {
         environment.pathsToLink = ["/share/zsh"];
         environment.shellAliases.git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
         environment.shellAliases.l = "ls -alh";
+        environment.variables.EDITOR = lib.getExe pkgs.neovim;
         environment.shellAliases.la = "${lib.getExe pkgs.lsd} -a";
         environment.shellAliases.ll = "${lib.getExe pkgs.lsd} -l";
         environment.shellAliases.lla = "${lib.getExe pkgs.lsd} -la";
@@ -165,7 +169,7 @@ nixpkgs.lib.nixosSystem rec {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         nix.allowedUsers = [userName];
-        nix.extraOptions = ''experimental-features = nix-command flakes'';
+        nix.extraOptions = ''experimental-features = nix-command flakes ca-derivations'';
         nix.gc.automatic = true;
         nix.gc.dates = "daily";
         nix.gc.options = ''--max-freed "$((30 * 1024**3 - 1024 * $(df -P -k /nix/store | tail -n 1 | ${pkgs.gawk}/bin/awk '{ print $4 }')))"'';
@@ -274,12 +278,12 @@ nixpkgs.lib.nixosSystem rec {
           '';
 
           shellInit = with pkgs; ''
-                   zstyle ':vcs_info:*' enable git cvs svn hg
-                   eval "$(${lib.getExe direnv} hook zsh)"
-                   hash -d current-sw=/run/current-system/sw
-                   hash -d booted-sw=/run/booted-system/sw
-                   autoload -U edit-command-line; zle -N edit-command-line;
-                   bindkey '\\C-x\\C-e' edit-command-line
+            zstyle ':vcs_info:*' enable git cvs svn hg
+            eval "$(${lib.getExe direnv} hook zsh)"
+            hash -d current-sw=/run/current-system/sw
+            hash -d booted-sw=/run/booted-system/sw
+            autoload -U edit-command-line; zle -N edit-command-line;
+            bindkey '\\C-x\\C-e' edit-command-line
             bindkey '\\C-k' up-line-or-history
             bindkey '\\C-j' down-line-or-history
             bindkey '\\C-h' backward-word
