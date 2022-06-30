@@ -35,7 +35,6 @@ with pkgs; {
       inxi
       ipmitool
       jless
-      jless
       lsb-release
       lsd
       lsof

@@ -21,6 +21,7 @@ nixpkgs.lib.nixosSystem rec {
     userName = "jlogemann";
     userEmail = "jlogemann@digitalocean.com";
     userFullName = "Jake Logemann";
+    enableDocs = false;
   };
   modules = [
     ({
@@ -33,7 +34,7 @@ nixpkgs.lib.nixosSystem rec {
       ...
     }:
       with builtins;
-      with lib; {
+      with lib; with specialArgs; {
         imports = [
           do-nixpkgs.nixosModules.kolide-launcher
           # do-nixpkgs.nixosModules.sentinelone
@@ -104,13 +105,13 @@ nixpkgs.lib.nixosSystem rec {
           isNormalUser = true;
         };
 
-        documentation.enable = true;
-        documentation.dev.enable = true;
-        documentation.doc.enable = true;
+        documentation.enable = enableDocs;
+        documentation.dev.enable = enableDocs;
+        documentation.doc.enable = enableDocs;
         documentation.man.enable = true;
         documentation.man.generateCaches = true;
         documentation.man.man-db.enable = true;
-        documentation.nixos.includeAllModules = true;
+        documentation.nixos.includeAllModules = enableDocs;
         documentation.nixos.options.warningsAreErrors = false;
         programs.git.config.aliases.aliases = "!git config --get-regexp '^alias\.' | sed -e 's/^alias\.//' -e 's/\ /\ =\ /'";
         programs.git.config.aliases.amend = "git commit --amend --no-edit";
