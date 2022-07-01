@@ -1,6 +1,20 @@
 { self, ... } @ inputs: final: prev: with prev; {
   fnctl = self.inputs.fnctl.packages.${system};
   do-nixpkgs = self.inputs.do-nixpkgs.packages.${system};
+  vpn = (writeShellApplication {
+      name = "vpn";
+      runtimeInputs = [openconnect];
+      text = ''
+        set -x; exec ${lib.getExe openconnect} \
+          --passwd-on-stdin  \
+          --background  \
+          --protocol=gp  \
+          --csd-wrapper=${openconnect}/libexec/openconnect/hipreport.sh \
+          -F _login:user=jlogemann \
+          -F _challenge:passwd=1 \
+          "https://vpn-$2.digitalocean.com/ssl-vpn"
+        '';
+    });
   alacritty = (writeShellApplication {
     name = "alacritty";
     runtimeInputs = [ alacritty terminus-nerdfont xcwd ];

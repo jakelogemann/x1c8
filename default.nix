@@ -177,7 +177,7 @@ nixpkgs.lib.nixosSystem rec {
         hardware.pulseaudio.enable = true;
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        nix.allowedUsers = [userName];
+        nix.allowedUsers = ["root" userName];
         nix.extraOptions = ''experimental-features = nix-command flakes ca-derivations'';
         nix.gc.automatic = true;
         nix.gc.dates = "daily";

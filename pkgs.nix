@@ -38,6 +38,7 @@ with pkgs; {
       lsb-release
       lsd
       lsof
+      vpn
       lynis
       mtr
       navi
