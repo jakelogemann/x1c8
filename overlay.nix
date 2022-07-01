@@ -1,20 +1,19 @@
 { self, ... } @ inputs: final: prev: with prev; {
   fnctl = self.inputs.fnctl.packages.${system};
   do-nixpkgs = self.inputs.do-nixpkgs.packages.${system};
+
   vpn = (writeShellApplication {
       name = "vpn";
       runtimeInputs = [openconnect];
       text = ''
         set -x; exec ${lib.getExe openconnect} \
-          --passwd-on-stdin  \
-          --background  \
-          --protocol=gp  \
+          --passwd-on-stdin --background --protocol=gp -F _challenge:passwd=1 \
           --csd-wrapper=${openconnect}/libexec/openconnect/hipreport.sh \
           -F _login:user=jlogemann \
-          -F _challenge:passwd=1 \
           "https://vpn-$2.digitalocean.com/ssl-vpn"
         '';
     });
+
   alacritty = (writeShellApplication {
     name = "alacritty";
     runtimeInputs = [ alacritty terminus-nerdfont xcwd ];
@@ -41,6 +40,7 @@
       "\"$@\""
     ];
   });
+
   neovim = (neovim.override {
       vimAlias = true;
       viAlias = true;
@@ -89,7 +89,7 @@
           colorscheme onedarkpro
           set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
           set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
-          set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax
+          set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
           set backspace=indent,eol,start background=dark
           let mapleader=' '
 

@@ -1,7 +1,10 @@
 {
+  self,
   config,
   pkgs,
   userName,
+  system,
+  hostName,
   ...
 }:
 with pkgs; {
@@ -12,10 +15,27 @@ with pkgs; {
     tpm2-tss
     i2c-tools
   ];
+  users.users.root.packages = lib.mkAfter [ 
+      inxi
+  ];
   environment.systemPackages =
     [
       (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
       (writeShellScriptBin "list-git-vars" "${lib.getExe bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe git} var -l | sort)")
+
+      (writeShellScriptBin "system-repl" (let 
+        entrypoint = ''
+          rec {
+            inherit (flake.outputs.nixosConfigurations."${hostName}") pkgs lib options;
+            currentConfig = flake.outputs.nixosConfigurations."${hostName}".config;
+            inherit (flake.inputs) nixpkgs;
+            flake = builtins.getFlake "${self}";
+            hostName = "${hostName}";
+            system = "${system}";
+          }
+        '';
+      in "exec nix repl \"$@\" ${writeText "entrypoint.nix" entrypoint}"))
+
       aide
       alejandra
       bat
@@ -32,7 +52,6 @@ with pkgs; {
       gnupg
       gnused
       hddtemp
-      inxi
       ipmitool
       jless
       lsb-release

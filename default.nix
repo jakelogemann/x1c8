@@ -105,13 +105,23 @@ nixpkgs.lib.nixosSystem rec {
           isNormalUser = true;
         };
 
-        documentation.enable = enableDocs;
+        programs.gnupg.agent.enable = true;
+        programs.gnupg.agent.enableSSHSupport = true;
+        programs.gnupg.agent.enableBrowserSocket = true;
+        programs.ssh.startAgent = false;
+        programs.ssh.setXAuthLocation = false;
+        programs.ssh.forwardX11 = false;
+        # programs.ssh.ciphers = [ "chacha20-poly1305@openssh.com" "aes256-gcm@openssh.com" ];
+        # programs.ssh.macs = ["hmac-sha2-512-etm@openssh.com" "hmac-sha1"];
+        programs.ssh.hostKeyAlgorithms = ["ecdsa-sha2-nistp256" "ssh-ed25519" "ssh-rsa"];
+        # programs.ssh.kexAlgorithms = ["curve25519-sha256@libssh.org" "diffie-hellman-group-exchange-sha256"];
+        documentation.enable = true;
         documentation.dev.enable = enableDocs;
-        documentation.doc.enable = enableDocs;
+        documentation.doc.enable = true;
         documentation.man.enable = true;
-        documentation.man.generateCaches = true;
+        documentation.man.generateCaches = enableDocs;
         documentation.man.man-db.enable = true;
-        documentation.nixos.includeAllModules = enableDocs;
+        documentation.nixos.includeAllModules = true;
         documentation.nixos.options.warningsAreErrors = false;
         programs.git.config.aliases.aliases = "!git config --get-regexp '^alias\.' | sed -e 's/^alias\.//' -e 's/\ /\ =\ /'";
         programs.git.config.aliases.amend = "git commit --amend --no-edit";
@@ -162,7 +172,7 @@ nixpkgs.lib.nixosSystem rec {
         fonts.fonts = with pkgs; [dejavu_fonts terminus-nerdfont];
         fonts.fontconfig.defaultFonts.serif = ["DejaVu Serif"];
         fonts.fontconfig.defaultFonts.sansSerif = ["DejaVu Sans"];
-        fonts.fontconfig.defaultFonts.monospace = ["DejaVu Sans Mono"];
+        fonts.fontconfig.defaultFonts.monospace = ["TerminessTTF Nerd Font Mono" "DejaVu Sans Mono"];
         fonts.fontconfig.defaultFonts.emoji = ["Noto Color Emoji"];
         fonts.enableDefaultFonts = true;
         fileSystems."/".fsType = "btrfs";
@@ -179,7 +189,7 @@ nixpkgs.lib.nixosSystem rec {
         home-manager.useUserPackages = true;
         nix.extraOptions = ''experimental-features = nix-command flakes'';
         nix.optimise.automatic = true;
-        nix.optimise.dates = "daily";
+        nix.optimise.dates = ["daily"];
         nix.gc.automatic = true;
         nix.gc.dates = "daily";
         nix.gc.options = ''--max-freed "$((30 * 1024**3 - 1024 * $(df -P -k /nix/store | tail -n 1 | ${pkgs.gawk}/bin/awk '{ print $4 }')))"'';
