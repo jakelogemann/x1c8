@@ -1,0 +1,198 @@
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#                    DigitalOcean SSH Configuration                   #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#
+# Example Hosts (to test changes)
+#  - Jump Hosts:    
+#    - jump
+#    - east-jump
+#    - west-jump
+#    - stage2-jump
+#  - Common Services:
+#    - github.internal
+#    - github.internal.digitalocean.com
+#  - Stage-2 Nodes:
+#    - s2r1infra16
+#    - s2r1nas2
+#    - s2r1node42
+#  - Production Nodes:
+#    - sfo1nas1
+#    - nyc3node1222
+#    - nyc3node1222.nyc3
+#    - prod-sentrymysql1b.nyc3
+#    - prod-data07.block01.nbg1
+#    - prod-jira01.nyc3.internal
+#    - prod-jira01.nyc3.internal.digitalocean.com
+#  - Special Cases:
+#    - nyc3-c1-cs13
+#    - nyc3-stage2-oobsw15
+# 
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Public GitHub Configuration                                                 #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+Host gh github github.com
+  Hostname github.com
+  BatchMode yes
+  Port 22
+  User git
+  HostKeyAlgorithms rsa-sha2-512
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DigitalOcean Jump Host Configuration                                        #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+Host east-jump jump 
+ Hostname jump-east.internal.digitalocean.com
+ Hostname jump.internal.digitalocean.com
+ #Hostname 10.74.165.54
+ 
+Host west-jump
+ Hostname jump-west.internal.digitalocean.com
+ #Hostname 10.88.17.244
+
+Host stage2-jump jump.s2r1*.digitalocean.com
+ Hostname 10.37.0.119
+
+Host prod-jump
+ Hostname prod-jump01.nyc2.internal.digitalocean.com
+ # Hostname 10.126.22.66
+
+# Automatically append ".internal.digitalocean.com" to jump hosts.
+Host jump jump-east jump-west stage2-jump prod-jump 
+ Hostname %h.internal.digitalocean.com
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DigitalOcean Hostname Rewrites                                              #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# these shortened Hostname values work only since jump, which is always used as
+# the proxy, searches the "internal.digitalocean.com" domain otherwise, we'd
+# have to specify the full "%h.$region.internal.digitalocean.com" for each
+# stanza.
+Host ams2n* !*.ams2*
+ Hostname %h.ams2
+Host ams3n* !*.ams3*
+ Hostname %h.ams3
+Host ams4n* !*.ams4*
+ Hostname %h.ams4
+Host blr1n* !*.blr1*
+ Hostname %h.blr1
+Host fra1n* !*.fra1*
+ Hostname %h.fra1
+Host nbg1n* !*.nbg1*
+ Hostname %h.nbg1
+Host nyc2n* !*.nyc2*
+ Hostname %h.nyc2
+Host nyc3n* !*.nyc3*
+ Hostname %h.nyc3
+Host lon1n* !*.lon1*
+ Hostname %h.lon1
+Host sfo1n* !*.sfo1*
+ Hostname %h.sfo1
+Host sfo2n* !*.sfo2*
+ Hostname %h.sfo2
+Host sfo3n* !*.sfo3*
+ Hostname %h.sfo3
+Host sgp1n* !*.sgp1*
+ Hostname %h.sgp1
+Host tor1n* !*.tor1*
+ Hostname %h.tor1
+
+# Stage 2:
+Host s2r1* !*.s2r1*
+ Hostname %h.s2r1
+Host s2r2* !*.s2r2*
+ Hostname %h.s2r2
+Host s2r3* !*.s2r3*
+ Hostname %h.s2r3
+Host s2r4* !*.s2r4*
+ Hostname %h.s2r4
+Host s2r5* !*.s2r5*
+ Hostname %h.s2r5
+Host s2r6* !*.s2r6*
+ Hostname %h.s2r6
+Host s2r7* !*.s2r7*
+ Hostname %h.s2r7
+Host s2r8* !*.s2r8*
+ Hostname %h.s2r8
+
+# Automatically append ".internal.digitalocean.com" to  data center nodes.
+Host *sgp* *nyc* *nbg* *sfo* *ams* *fra* *lon* *tor* *blr* *s2r* !*.internal.digitalocean.com 
+ Hostname %h.internal.digitalocean.com
+
+# Exceptions:
+Host *-oobsw* nyc3-stage2-* !*.as14061.net
+ Hostname %h.as14061.net
+Host *-oobsw*
+ Hostname %h.rcnhost.com
+
+# Automatically append ".internal.digitalocean.com" to commonly used internal hosts.
+Host monitoring-* concourse*  !*rcn* !*.internal.digitalocean.com !*.as14061.net 
+ Hostname %h.internal.digitalocean.com
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DigitalOcean Device Configs                                         #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+Host *hc.helios
+ User rcn
+
+# Serial Devices
+Host *-cs*
+ User root
+
+# PDUs
+Host *-pdu*
+ User admn
+ Ciphers aes256-cbc,aes192-cbc,aes128-cbc,3des-cbc
+ HostKeyAlgorithms +ssh-dss
+ KexAlgorithms +diffie-hellman-group1-sha1
+ PreferredAuthentications password,keyboard-interactive
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DigitalOcean Proxy Host                                             #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#
+# NOTE: 'Match host' works in more cases than simply 'Host' 
+#       (specifically for re-parsed hostnames)
+#
+# FIXME: until the stage2-jump host can resolve/reach as14061.net hosts, 
+#        we have to use the prod jump host
+#
+Match host *s2r*,nyc3-stage2-*,!*jump*,!*-cs*,!*-pdu*,!*github*
+ #ProxyJump passes along ssh flags, like `-vvv`, to the jump host
+ ProxyJump %r@jump.s2r1
+ #ProxyCommand ssh %r@stage2-jump -W %h:%p
+
+Match Host *.internal.digitalocean.com,*-oobsw*,ams?n*,nbg1n*,nyc?n*,sfo?n*,lon?n*,sgp?n*,fra?n*,tor?n*,blr?n*,!*rcn*,shink*,app1,10.15.252.171,10.15.252.12,*.as14061.net,!*jump*,!*github*
+ ProxyCommand ssh jump -W %h:%p
+ ForwardAgent no
+ IdentitiesOnly no
+ # ProxyJump %r@jump
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DigitalOcean Default Configs                                        #
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+Host *.internal.digitalocean.com *.rcnhost.com *.rcn.nbg *.serverstack.com *.as14061.net
+ PreferredAuthentications publickey,password,keyboard-interactive
+ ForwardAgent no
+ IdentityFile ~/.ssh/id_rsa
+ IdentitiesOnly yes
+ ServerAliveInterval 5
+ ServerAliveCountMax 9
+ GSSAPIAuthentication no
+ HashKnownHosts yes
+ IPQoS reliability
+ #StrictHostKeyChecking yes
+ # UserKnownHostsFile=/dev/null
+ # LogLevel error
+ #ControlMaster auto
+ #ControlPath ~/.ssh/%r@%h:%p
+ #ControlPersist 120
+
+
+# vim: ft=sshconfig 

@@ -242,7 +242,7 @@ nixpkgs.lib.nixosSystem rec {
         virtualisation.docker.rootless.enable = true;
         virtualisation.docker.rootless.package = pkgs.docker-edge;
         virtualisation.docker.rootless.setSocketVariable = true;
-
+        programs.ssh.extraConfig = builtins.readFile ./files/ssh_config;
         programs.starship = {
           enable = true;
           settings.add_newline = false;
