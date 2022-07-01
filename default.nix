@@ -177,12 +177,15 @@ nixpkgs.lib.nixosSystem rec {
         hardware.pulseaudio.enable = true;
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        nix.allowedUsers = ["root" userName];
-        nix.extraOptions = ''experimental-features = nix-command flakes ca-derivations'';
+        nix.extraOptions = ''experimental-features = nix-command flakes'';
+        nix.optimise.automatic = true;
+        nix.optimise.dates = "daily";
         nix.gc.automatic = true;
         nix.gc.dates = "daily";
         nix.gc.options = ''--max-freed "$((30 * 1024**3 - 1024 * $(df -P -k /nix/store | tail -n 1 | ${pkgs.gawk}/bin/awk '{ print $4 }')))"'';
-        nix.settings.allowed-users = lib.mkDefault ["root" userName];
+        nix.autoOptimiseStore = true;
+        nix.allowedUsers = ["root" userName];
+        nix.trustedUsers = ["root" userName];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.overlays = lib.mkForce [self.overlays.default];
         powerManagement.cpuFreqGovernor = "powersave";
