@@ -31,11 +31,12 @@ in {
     networkmanager.dns = mkForce "none";
     hostName = hostName;
     domain = "home.arpa";
-    hosts."10.74.61.250" = ["github.internal.digitalocean.com"];
-    hosts."10.38.6.155" = ["servicecatalog-staging.internal.digitalocean.com"];
+    # hosts."10.74.61.250" = ["github.internal.digitalocean.com"];
+    # hosts."10.38.6.155" = ["servicecatalog-staging.internal.digitalocean.com"];
     interfaces.enp0s20f0u4u1.useDHCP = true;
     interfaces.enp0s20f0u3u1.useDHCP = true;
     interfaces.enp0s31f6.useDHCP = true;
+    interfaces.enp45s0u2u3.useDHCP = true;
     interfaces.wlp0s20f3.useDHCP = true;
     networkmanager.enable = true;
     useDHCP = false;

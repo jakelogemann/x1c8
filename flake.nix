@@ -28,7 +28,7 @@
     ...
   } @ inputs': rec {
     inherit (fnctl) lib formatter devShells;
-    overlays.default = import ./overlay.nix inputs';
+    overlays.default = import ./overlay/default.nix inputs';
     nixosConfigurations.laptop = import ./default.nix inputs';
   };
 }

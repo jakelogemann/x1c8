@@ -9,6 +9,7 @@ with lib; {
     pkgs,
     ...
   }: let
+      modifier = "Mod4";
     theme.defaultFont = "TerminessTTF Nerd Font Mono";
     theme.defaultFontSize = "16";
 
@@ -50,177 +51,159 @@ with lib; {
     theme.icon.battery-half = "";
     theme.icon.battery-high = "";
     theme.icon.battery-full = "";
+
+    builtinDisplay = "00ffffffffffff0009e5db0700000000011c0104a51f1178027d50a657529f27125054000000010101010101010101010101010101013a3880de703828403020360035ae1000001afb2c80de703828403020360035ae1000001a000000fe00424f452043510a202020202020000000fe004e4531343046484d2d4e36310a0043";
+    monitor0 = "00ffffffffffff0010acb7414c4b4241341e0104b53c22783eee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f4dd000a0f0703e803020350055502100001a000000ff00424e4e354332330a2020202020000000fd00184b1e8c36010a202020202020000000fc0044454c4c205532373230510a200187020324f14c101f2005140413121103020123097f0783010000e305ff01e6060701605628a36600a0f0703e803020350055502100001a565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000000000000000000000000000000014";
+    defaultDisplay = {
+      enable = true;
+      primary = true;
+      rotate = "normal";
+      mode = "3840x2160";
+      position = "0x0";
+    };
   in {
     fonts.fontconfig.enable = true;
-
     home.enableNixpkgsReleaseCheck = false;
-    programs.firefox.profiles.default = {
-      name = "default";
-      # bookmarks = let
-      # in
-      #   {
-      #     "docc (stage2) web ui".url = "https://stage2-docc-web-ui.internal.digitalocean.com";
-      #     "docc getting started".url = "https://docc-getting-started.internal.digitalocean.com";
-      #     "docc user guide".url = "https://docc-user-guide.internal.digitalocean.com";
-      #     "docc web ui".url = "https://docc-web-ui.internal.digitalocean.com";
-      #     "people-wiki".url = "https://confluence.internal.digitalocean.com";
-      #     "vpn-nyc3".url = "https://vpn-nyc3.digitalocean.com";
-      #     "vpn-sfo2".url = "https://vpn-sfo2.digitalocean.com";
-      #     "calendar".url = "https://calendar.google.com/";
-      #     "email".url = "https://mail.google.com/";
-      #     "browser config".url = "about:config";
-      #     "browser preferences".url = "about:preferences";
-      #     "fnctl/fnctl".url = "https://github.com/fnctl/fnctl";
-      #     "new browser tab".url = "about:newtab";
-      #   };
-      settings = {
-        "browser.startup.homepage" = "about:newtab";
-        "extensions.pocket.showHome" = false;
-        "browser.search.region" = "US";
-        "browser.bookmarks.autoExportHTML" = true;
-        "browser.bookmarks.addedImportButton" = false;
-        "browser.aboutwelcome.enabled" = true;
-        "browser.aboutConfig.showWarning" = false;
-        "browser.search.isUS" = true;
-        "distribution.searchplugins.defaultLocale" = "en-US";
-        "general.useragent.locale" = "en-US";
-        "browser.bookmarks.showMobileBookmarks" = false;
-        "security.warn_submit_secure_to_insecure" = true;
-        "services.sync.engine.passwords" = false;
-        "services.sync.engine.history" = false;
-        "services.sync.engine.creditcards" = false;
-        "browser.quitShortcut.disabled" = true;
-        "services.sync.engine.perfs" = false;
-        "services.sync.prefs.sync.browser.discovery.enabled" = false;
-        "services.sync.prefs.sync.browser.formfill.enabled" = false;
-        "services.sync.prefs.sync.browser.link.open_newwindow" = false;
-        "services.sync.log.appender.file.logOnError" = false;
-        "services.sync.log.appender.file.logOnSuccess" = false;
-        "services.sync.engine.tabs" = false;
-        "editor.password.mask_delay" = -1;
+    home.stateVersion = "22.05";
+
+    programs.autorandr = {
+      enable = true;
+      hooks.postswitch."notify-i3" = "i3-msg restart";
+      profiles = {
+        default.config.eDP-1 = defaultDisplay;
+        default.fingerprint.eDP-1 = builtinDisplay;
+        mirror0.config.DP-1 = defaultDisplay;
+        mirror0.config.eDP-1 = defaultDisplay;
+        mirror0.fingerprint.DP-1 = monitor0;
+        mirror0.fingerprint.eDP-1 = builtinDisplay;
+        monitor0.config.DP-1 = defaultDisplay;
+        monitor0.fingerprint.DP-1 = monitor0;
       };
     };
 
-    home.stateVersion = "22.05";
-
-    xsession.windowManager.i3 = let
-      modifier = "Mod4";
-    in {
+    xsession.windowManager.i3 = {
       enable = true;
       package = pkgs.i3-gaps;
       config = with theme; {
         inherit modifier;
-        assigns."0: extra" = [
-          {
-            class = "^Firefox$";
-            window_role = "About";
-          }
-        ];
-        assigns."1: extra" = [
-          {
-            class = "^Slack$";
-            window_role = "browser-window";
-          }
-        ];
-        assigns."1: web" = [{class = "^Firefox$";}];
         bars = mkForce [];
         floating.titlebar = false;
         fonts.names = [defaultFont];
         fonts.size = 14.0;
         fonts.style = "Bold Semi-Condensed";
-        gaps.inner = 5;
-        gaps.outer = 5;
-        gaps.smartBorders = "no_gaps";
-        gaps.smartGaps = false;
         terminal = "alacritty";
         window.border = 4;
         workspaceAutoBackAndForth = true;
         workspaceLayout = "default";
 
-        colors.background = bg;
-        colors.placeholder = {
-          background = "#0c0c0c";
-          border = "#000000";
-          childBorder = "#0c0c0c";
-          indicator = "#000000";
-          text = "#ffffff";
+        gaps = {
+          inner = 5;
+          outer = 5;
+          smartBorders = "no_gaps";
+          smartGaps = false;
         };
 
-        colors.focused = {
-          background = primary;
-          border = primary;
-          childBorder = primary;
-          indicator = primary;
-          text = fg;
+        assigns = {
+          "0: extra" = [
+            {
+              class = "^Firefox$";
+              window_role = "About";
+            }
+          ];
+          "1: extra" = [
+            {
+              class = "^Slack$";
+              window_role = "browser-window";
+            }
+          ];
         };
 
-        colors.focusedInactive = {
-          background = quinternary;
-          border = quinternary;
-          childBorder = quinternary;
-          indicator = quinternary;
-          text = fg;
-        };
-
-        colors.unfocused = {
+        colors = {
           background = bg;
-          border = bg;
-          childBorder = bg;
-          indicator = bg;
-          text = fg;
+          placeholder = {
+            background = "#0c0c0c";
+            border = "#000000";
+            childBorder = "#0c0c0c";
+            indicator = "#000000";
+            text = "#ffffff";
+          };
+
+          focused = {
+            background = primary;
+            border = primary;
+            childBorder = primary;
+            indicator = primary;
+            text = fg;
+          };
+
+          focusedInactive = {
+            background = quinternary;
+            border = quinternary;
+            childBorder = quinternary;
+            indicator = quinternary;
+            text = fg;
+          };
+
+          unfocused = {
+            background = bg;
+            border = bg;
+            childBorder = bg;
+            indicator = bg;
+            text = fg;
+          };
+
+          urgent = {
+            background = urgency;
+            border = urgency;
+            childBorder = urgency;
+            indicator = urgency;
+            text = fg;
+          };
         };
 
-        colors.urgent = {
-          background = urgency;
-          border = urgency;
-          childBorder = urgency;
-          indicator = urgency;
-          text = fg;
-        };
+        modes = {
+          display = {
+            "c" = "exec autorandr clone-largest";
+            "h" = "exec autorandr horizontal";
+            "0" = "exec xrandr --output DP-1 --off  --output DP-2 --off   --output eDP-1 --primary --mode 1920x1080 --dpi 192";
+            "1" = "exec xrandr --output DP-1 --primary --mode 1920x1080 --dpi 192 --output DP-2 --off   --output eDP-1 --off";
+            "v" = "exec autorandr vertical";
+            "l" = "exec autorandr common";
+            "Return" = "exec autorandr clone-largest; mode default";
+            "Escape" = "mode default";
+          };
 
-        modes.autorandr = {
-          "0" = "exec autorandr off";
-          "1" = "exec autorandr default";
-          "2" = "exec autorandr left";
-          "3" = "exec autorandr dual";
-          "h" = "exec autorandr horizontal";
-          "v" = "exec autorandr vertical";
-          "l" = "exec autorandr common";
-          "Shift+l" = "exec autorandr clone-largest";
-          "Escape" = "mode default";
-          "Return" = "mode default";
-        };
+          desktop = {
+            "r" = "i3-msg reload";
+            "Shift+r" = "i3-msg restart";
+            "Shift+q" = "i3-msg exit";
+            "Escape" = "mode default";
+            "Return" = "mode default";
+          };
 
-        modes.desktop = {
-          "r" = "i3-msg reload";
-          "Shift+r" = "i3-msg restart";
-          "Shift+q" = "i3-msg exit";
-          "Escape" = "mode default";
-          "Return" = "mode default";
-        };
+          move-container = {
+            "0" = "move scratchpad; mode default;";
+            "1" = "move container to workspace number 1; mode default;";
+            "2" = "move container to workspace number 2; mode default;";
+            "3" = "move container to workspace number 3; mode default;";
+            "4" = "move container to workspace number 4; mode default;";
+            "5" = "move container to workspace number 5; mode default;";
+            "6" = "move container to workspace number 6; mode default;";
+            "7" = "move container to workspace number 7; mode default;";
+            "8" = "move container to workspace number 8; mode default;";
+            "9" = "move container to workspace number 9; mode default;";
+            "Escape" = "mode default";
+            "Return" = "mode default";
+          };
 
-        modes.move-container = {
-          "0" = "move scratchpad; mode default;";
-          "1" = "move container to workspace number 1; mode default;";
-          "2" = "move container to workspace number 2; mode default;";
-          "3" = "move container to workspace number 3; mode default;";
-          "4" = "move container to workspace number 4; mode default;";
-          "5" = "move container to workspace number 5; mode default;";
-          "6" = "move container to workspace number 6; mode default;";
-          "7" = "move container to workspace number 7; mode default;";
-          "8" = "move container to workspace number 8; mode default;";
-          "9" = "move container to workspace number 9; mode default;";
-          "Escape" = "mode default";
-          "Return" = "mode default";
-        };
-
-        modes.resize = {
-          "Left" = "resize shrink width 10 px or 10 ppt";
-          "Down" = "resize grow height 10 px or 10 ppt";
-          "Up" = "resize shrink height 10 px or 10 ppt";
-          "Right" = "resize grow width 10 px or 10 ppt";
-          "Escape" = "mode default";
-          "Return" = "mode default";
+          resize = {
+            "Left" = "resize shrink width 10 px or 10 ppt";
+            "Down" = "resize grow height 10 px or 10 ppt";
+            "Up" = "resize shrink height 10 px or 10 ppt";
+            "Right" = "resize grow width 10 px or 10 ppt";
+            "Escape" = "mode default";
+            "Return" = "mode default";
+          };
         };
 
         startup = [
@@ -234,18 +217,13 @@ with lib; {
             always = true;
             notification = false;
           }
-          /*
-           {
-           command = "${pkgs.feh}/bin/feh --bg-scale ~/background.png";
-           always = true;
-           notification = false;
-           }
-           */
         ];
 
         keybindings = with pkgs; {
-          "XF86Display" = "exec ${xorg.xrandr}/bin/xrandr --output eDP-1 --auto --output DP-1 --off --output DP-2 --off --output HDMI-1 --off";
-          "${modifier}+XF86Display" = "exec ${xorg.xrandr}/bin/xrandr --output eDP-1 --off --output DP-1 --auto --output DP-2 --auto --output HDMI-1 --auto";
+          "XF86Display" = "mode display";
+          "Pause" = "mode display";
+          "F7" = "mode display";
+          "${modifier}+F7" = "mode display";
           "XF86AudioMute" = "exec amixer set Master toggle";
           "XF86AudioLowerVolume" = "exec amixer set Master 4%-";
           "XF86AudioRaiseVolume" = "exec amixer set Master 4%+";
@@ -272,7 +250,7 @@ with lib; {
           "${modifier}+7" = "workspace number 7";
           "${modifier}+8" = "workspace number 8";
           "${modifier}+9" = "workspace number 9";
-          "${modifier}+Control+Shift+q" = "exec ${i3-gaps}/bin/i3-msg exit";
+          "${modifier}+Control+Shift+q" = "exec i3-msg exit";
           "${modifier}+Ctrl+d" = "floating toggle";
           "${modifier}+v" = "split v";
           "${modifier}+minus" = "split h";
@@ -315,31 +293,14 @@ with lib; {
           "${modifier}+Shift+Tab" = "workspace prev_on_output";
           "${modifier}+Shift+q" = "kill";
           "${modifier}+Tab" = "workspace next_on_output";
-          "${modifier}+f" = "exec ${alacritty}/bin/alacritty -e ranger";
-          "${modifier}+d" = "exec ${dmenu}/bin/dmenu_run";
-          "${modifier}+e" = "exec ${alacritty}/bin/alacritty -e vim";
+          "${modifier}+f" = "exec alacritty -e ranger";
+          "${modifier}+d" = "exec dmenu_run";
+          "${modifier}+e" = "exec alacritty -e vim";
           "${modifier}+grave" = "workspace back_and_forth";
           "${modifier}+Space" = "exec rofi -show drun";
           "${modifier}+r" = "exec rofi -show drun";
-          "${modifier}+t" = "exec ${alacritty}/bin/alacritty";
-          "${modifier}+w" = "exec ${firefox}/bin/firefox";
-        };
-      };
-    };
-
-    services.dunst = {
-      enable = true;
-      settings = {
-        global = {
-          geometry = "300x5-30+50";
-          transparency = 10;
-          frame_color = theme.tertiary;
-          font = "${theme.defaultFont} ${theme.defaultFontSize}";
-        };
-        urgency_normal = {
-          background = theme.bg;
-          foreground = theme.fg;
-          timeout = 10;
+          "${modifier}+t" = "exec alacritty";
+          "${modifier}+w" = "exec firefox";
         };
       };
     };
@@ -411,7 +372,7 @@ with lib; {
 
           font-0 = "${defaultFont}:size=${defaultFontSize};3";
           font-1 = "${defaultFont}:style=Bold:size=${defaultFontSize};3";
-          modules-left = "tray ghe";
+          modules-left = "tray";
           modules-right = "network cpu memory battery powermenu";
           locale = "en_US.UTF-8";
         };
@@ -434,34 +395,16 @@ with lib; {
 
         #--------------------MODULES--------------------"
 
-        "module/ghe" = {
+        "module/distro-icon" = {
           type = "custom/script";
-          exec = let
-            script = pkgs.writeShellScriptBin "ghe-check" ''
-              actual=$(${pkgs.curl}/bin/curl -sS https://github.internal.digitalocean.com/robots.txt | ${pkgs.openssl}/bin/openssl dgst -sha512 -)
-              expected="(stdin)= 4ace1fd091808f9bdc2377a791e68ba529c5e1e88d9bd3bed5852f08146fc16126ddca54e418c7754715cd33484f41dc5212586e77faa5c91fe864f51007321c"
-              if [[ "$actual" == "$expected" ]]; then echo -e '\ue709'; fi; exit 0;
-            '';
-          in "${script}/bin/ghe-check";
-          interval = 30;
+          exec = "echo ";
+          interval = 999999999;
+
           format = "<label>";
           format-foreground = quaternary;
           format-background = secondary;
           format-padding = 1;
-          label = "%output%";
-          label-font = 1;
-        };
-
-        "module/distro-icon" = {
-          type = "custom/script";
-          exec = "${pkgs.coreutils}/bin/uname -r | ${pkgs.coreutils}/bin/cut -d- -f1";
-          interval = 999999999;
-
-          format = " <label>";
-          format-foreground = quaternary;
-          format-background = secondary;
-          format-padding = 1;
-          label = "%output%";
+          label = " %output% ";
           label-font = 2;
         };
 
@@ -686,33 +629,6 @@ with lib; {
           menu-0-2 = " Shutdown";
           menu-0-2-exec = "systemctl poweroff";
         };
-      };
-    };
-
-    programs.autorandr = {
-      enable = true;
-      hooks.postswitch."notify-i3" = "${pkgs.i3}/bin/i3-msg restart";
-      profiles = let
-        builtinDisplay = "00ffffffffffff0009e5db0700000000011c0104a51f1178027d50a657529f27125054000000010101010101010101010101010101013a3880de703828403020360035ae1000001afb2c80de703828403020360035ae1000001a000000fe00424f452043510a202020202020000000fe004e4531343046484d2d4e36310a0043";
-        monitor0 = "00ffffffffffff0010acb7414c4b4241341e0104b53c22783eee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f4dd000a0f0703e803020350055502100001a000000ff00424e4e354332330a2020202020000000fd00184b1e8c36010a202020202020000000fc0044454c4c205532373230510a200187020324f14c101f2005140413121103020123097f0783010000e305ff01e6060701605628a36600a0f0703e803020350055502100001a565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000000000000000000000000000000014";
-        defaultDisplay = {
-          enable = true;
-          primary = true;
-          rotate = "normal";
-          mode = "3840x2160";
-          position = "0x0";
-        };
-      in {
-        default.fingerprint.eDP-1 = builtinDisplay;
-        default.config.eDP-1 = defaultDisplay;
-
-        monitor0.fingerprint.DP-1 = monitor0;
-        monitor0.config.DP-1 = defaultDisplay;
-
-        mirror0.fingerprint.eDP-1 = builtinDisplay;
-        mirror0.config.eDP-1 = defaultDisplay;
-        mirror0.fingerprint.DP-1 = monitor0;
-        mirror0.config.DP-1 = defaultDisplay;
       };
     };
   };

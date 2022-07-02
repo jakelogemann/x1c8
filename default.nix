@@ -42,6 +42,7 @@ nixpkgs.lib.nixosSystem rec {
           self.inputs.home-manager.nixosModules.home-manager
           ./network.nix
           ./home.nix
+          ./neovim.nix
           ./pkgs.nix
         ];
         system.stateVersion = lib.mkForce specialArgs.stateVersion;
@@ -243,6 +244,19 @@ nixpkgs.lib.nixosSystem rec {
         virtualisation.docker.rootless.package = pkgs.docker-edge;
         virtualisation.docker.rootless.setSocketVariable = true;
         programs.ssh.extraConfig = builtins.readFile ./files/ssh_config;
+
+        programs.tmux = {
+          enable = true;
+          aggressiveResize = true;
+          newSession = true;
+          baseIndex = 1;
+          reverseSplit = true;
+          secureSocket = true;
+          shortcut = "a";
+          terminal = "tmux-256color";
+          plugins = with pkgs.tmuxPlugins; [ pain-control onedark-theme sensible ];
+        };
+
         programs.starship = {
           enable = true;
           settings.add_newline = false;
