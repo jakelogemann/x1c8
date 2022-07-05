@@ -51,35 +51,10 @@ with lib; {
     theme.icon.battery-half = "";
     theme.icon.battery-high = "";
     theme.icon.battery-full = "";
-
-    builtinDisplay = "00ffffffffffff0009e5db0700000000011c0104a51f1178027d50a657529f27125054000000010101010101010101010101010101013a3880de703828403020360035ae1000001afb2c80de703828403020360035ae1000001a000000fe00424f452043510a202020202020000000fe004e4531343046484d2d4e36310a0043";
-    monitor0 = "00ffffffffffff0010acb7414c4b4241341e0104b53c22783eee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f4dd000a0f0703e803020350055502100001a000000ff00424e4e354332330a2020202020000000fd00184b1e8c36010a202020202020000000fc0044454c4c205532373230510a200187020324f14c101f2005140413121103020123097f0783010000e305ff01e6060701605628a36600a0f0703e803020350055502100001a565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000000000000000000000000000000014";
-    defaultDisplay = {
-      enable = true;
-      primary = true;
-      rotate = "normal";
-      mode = "3840x2160";
-      position = "0x0";
-    };
   in {
     fonts.fontconfig.enable = true;
     home.enableNixpkgsReleaseCheck = false;
     home.stateVersion = "22.05";
-
-    programs.autorandr = {
-      enable = true;
-      hooks.postswitch."notify-i3" = "i3-msg restart";
-      profiles = {
-        default.config.eDP-1 = defaultDisplay;
-        default.fingerprint.eDP-1 = builtinDisplay;
-        mirror0.config.DP-1 = defaultDisplay;
-        mirror0.config.eDP-1 = defaultDisplay;
-        mirror0.fingerprint.DP-1 = monitor0;
-        mirror0.fingerprint.eDP-1 = builtinDisplay;
-        monitor0.config.DP-1 = defaultDisplay;
-        monitor0.fingerprint.DP-1 = monitor0;
-      };
-    };
 
     xsession.windowManager.i3 = {
       enable = true;

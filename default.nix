@@ -231,6 +231,54 @@ nixpkgs.lib.nixosSystem rec {
         services.xserver.windowManager.i3.enable = true;
         services.xserver.windowManager.i3.package = pkgs.i3-gaps;
         services.xserver.xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
+        services.autorandr = {
+          enable = false;
+          hooks.postswitch."notify-i3" = "${pkgs.i3}/bin/i3-msg restart";
+          hooks.postswitch."change-dpi" = ''
+            case "$AUTORANDR_CURRENT_PROFILE" in
+            default) DPI=160 ;;
+            dual|left) DPI=90 ;;
+            *) echo "Unknown profle: $AUTORANDR_CURRENT_PROFILE" && exit 1 ;;
+            esac; echo "Xft.dpi: $DPI" | ${pkgs.xorg.xrdb}/bin/xrdb -merge
+          '';
+
+          profiles = let
+            fingerprints = {
+              builtin = "00ffffffffffff0009e5db0700000000011c0104a51f1178027d50a657529f27125054000000010101010101010101010101010101013a3880de703828403020360035ae1000001afb2c80de703828403020360035ae1000001a000000fe00424f452043510a202020202020000000fe004e4531343046484d2d4e36310a0043";
+left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f08e80030f2705a80b0588a0055502100001e000000ff0037574e354332330a2020202020000000fc0044454c4c205532373230510a20000000fd00184b1e8c3c000a2020202020200173020343f15261605f5e5d101f051404131211030207060123097f07830100006d030c001000383c20006001020367d85dc401788003e20f03e305ff01e6060701605628565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000007d";
+              right = "00ffffffffffff0010acb7414c4b4241341e0104b53c22783eee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f4dd000a0f0703e803020350055502100001a000000ff00424e4e354332330a2020202020000000fd00184b1e8c36010a202020202020000000fc0044454c4c205532373230510a200187020324f14c101f2005140413121103020123097f0783010000e305ff01e6060701605628a36600a0f0703e803020350055502100001a565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000000000000000000000000000000014";
+            };
+          in {
+            default.fingerprint.eDP-1 = fingerprints.builtin;
+            default.config.eDP-1.enable = true;
+            default.config.eDP-1.primary = true;
+            default.config.eDP-1.rotate = "normal";
+            default.config.eDP-1.dpi = 160;
+            default.config.eDP-1.mode = "1920x1080";
+            default.config.eDP-1.position = "0x0";
+
+            left.fingerprint.HDMI-1 = fingerprints.left;
+            left.config.HDMI-1.enable = true;
+            left.config.HDMI-1.primary = true;
+            left.config.HDMI-1.rotate = "90";
+            left.config.HDMI-1.mode = "1920x1080";
+            left.config.HDMI-1.position = "0x0";
+
+            dual.fingerprint.HDMI-1 = fingerprints.left;
+            dual.config.HDMI-1.enable = true;
+            dual.config.HDMI-1.primary = true;
+            dual.config.HDMI-1.rotate = "90";
+            dual.config.HDMI-1.mode = "1920x1080";
+            dual.config.HDMI-1.position = "0x0";
+
+            dual.fingerprint.DP-2 = fingerprints.right;
+            dual.config.DP-2.enable = true;
+            dual.config.DP-2.primary = true;
+            dual.config.DP-2.rotate = "90";
+            dual.config.DP-2.mode = "1920x1080";
+            dual.config.DP-2.position = "1080x0";
+          };
+        };
         sound.enable = true;
         sound.mediaKeys.enable = true;
         swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
