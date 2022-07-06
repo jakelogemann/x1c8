@@ -38,7 +38,7 @@ nixpkgs.lib.nixosSystem rec {
         imports = [
           do-nixpkgs.nixosModules.kolide-launcher
           # do-nixpkgs.nixosModules.sentinelone
-          self.inputs.fnctl.inputs.hardware.nixosModules.lenovo-thinkpad-x1-9th-gen
+          self.inputs.fnctl.inputs.hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
           self.inputs.home-manager.nixosModules.home-manager
           ./network.nix
           ./home.nix
@@ -261,22 +261,22 @@ left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a5
             left.config.HDMI-1.enable = true;
             left.config.HDMI-1.primary = true;
             left.config.HDMI-1.rotate = "90";
-            left.config.HDMI-1.mode = "1920x1080";
+            left.config.HDMI-1.mode = "2048x1152";
             left.config.HDMI-1.position = "0x0";
 
             dual.fingerprint.HDMI-1 = fingerprints.left;
             dual.config.HDMI-1.enable = true;
             dual.config.HDMI-1.primary = true;
             dual.config.HDMI-1.rotate = "90";
-            dual.config.HDMI-1.mode = "1920x1080";
+            dual.config.HDMI-1.mode = "2048x1152";
             dual.config.HDMI-1.position = "0x0";
 
             dual.fingerprint.DP-2 = fingerprints.right;
             dual.config.DP-2.enable = true;
             dual.config.DP-2.primary = true;
             dual.config.DP-2.rotate = "90";
-            dual.config.DP-2.mode = "1920x1080";
-            dual.config.DP-2.position = "1080x0";
+            dual.config.DP-2.mode = "2048x1152";
+            dual.config.DP-2.position = "1152x0";
           };
         };
         sound.enable = true;
