@@ -4,4 +4,5 @@
   commonUtils = callPackage ./commonUtils.nix {};
   hwUtils = callPackage ./hwUtils.nix {};
   vpn = callPackage ./vpn.nix {};
+  dao = callPackage ./dao.nix {};
 }

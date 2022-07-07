@@ -121,6 +121,7 @@ with pkgs; {
         runtimeInputs = [gh];
         text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
       })
+      dao
       certtool
       fly
       docc
