@@ -7,7 +7,16 @@
 with stdenv; let
   name = "dao";
   version = "0.4.2";
-  baseUrl = "https://artifactory.internal.digitalocean.com/artifactory/artifacts-dev-local/${name}";
+  description = ''
+    dao is a command-line tool used to provide an interface between the users of
+    Cinc at DigitalOcean and our various distributed Cinc Servers. It also
+    provides several utility functions that don't interact directly with Cinc
+    Servers. It is our intention to replace usage of the "knife" tool
+    internally with the usage of dao. (pronounced "dow" as in "Dow Jones").
+  '';
+  artifactoryHost = "artifactory.internal.digitalocean.com";
+  artifactoryRepo = "artifacts-dev-local";
+  baseUrl = "https://${artifactoryHost}/artifactory/${artifactoryRepo}/${name}";
   systemMap = {
     "aarch64-darwin" = {
       url = "${baseUrl}/v${version}/${name}_v${version}_darwin_arm64.tar.gz";
@@ -42,12 +51,8 @@ in
         stripRoot = false;
       };
     installPhase = "install -Dm755 $src/${name} $out/bin/${name}";
-    meta.platforms = builtins.attrNames systemMap;
-    meta.description = ''
-      dao is a command-line tool used to provide an interface between the users of
-      Cinc at DigitalOcean and our various distributed Cinc Servers. It also
-      provides several utility functions that don't interact directly with Cinc
-      Servers. It is our intention to replace usage of the "knife" tool
-      internally with the usage of dao. (pronounced "dow" as in "Dow Jones").
-    '';
+    meta = {
+      inherit description;
+      platforms = builtins.attrNames systemMap;
+    };
   }

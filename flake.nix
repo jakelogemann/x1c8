@@ -1,25 +1,32 @@
 {
   description = "laptop";
 
-  inputs.nixpkgs.url = "nixpkgs/nixos-22.05";
+  inputs = {
+    nixpkgs.url = "nixpkgs/nixos-22.05";
 
-  inputs.fnctl = {
-    url = "github:fnctl/fnctl.nix";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
+    fnctl = {
+      url = "github:fnctl/fnctl.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-  inputs.home-manager = {
-    inputs.nixpkgs.follows = "fnctl/nixpkgs";
-    url = "github:nix-community/home-manager";
-  };
+    cthulhu = {
+      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu?ref=master&rev=7ccf44608d81f8a7836a8bef28a5288562a80f97";
+      flake = false;
+    };
 
-  inputs.do-nixpkgs = {
-    inputs.nixpkgs.follows = "fnctl/nixpkgs";
-    ref = "master";
-    type = "git";
-    url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs";
-    inputs.flake-utils.follows = "fnctl/utils";
-    inputs.home-manager.follows = "home-manager";
+    home-manager = {
+      inputs.nixpkgs.follows = "fnctl/nixpkgs";
+      url = "github:nix-community/home-manager";
+    };
+
+    do-nixpkgs = {
+      inputs.nixpkgs.follows = "fnctl/nixpkgs";
+      ref = "jlogemann/cleanup";
+      type = "git";
+      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs";
+      inputs.flake-utils.follows = "fnctl/utils";
+      inputs.home-manager.follows = "home-manager";
+    };
   };
 
   outputs = {

@@ -28,5 +28,5 @@ args @ {
 }:
 symlinkJoin {
   name = "commonUtils";
-  paths = builtins.attrValues (lib.filterAttrs (name: _: name != "lib" && name != "symlinkJoin") args);
+  paths = builtins.attrValues (builtins.removeAttrs args ["lib" "symlinkJoin"]);
 }

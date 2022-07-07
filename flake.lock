@@ -3,22 +3,42 @@
     "cthulhu": {
       "flake": false,
       "locked": {
-        "lastModified": 1654534007,
-        "narHash": "sha256-npgsJwrH8C63M0dYnIEqaJRx5uIVHlWVF22uxDzPWhk=",
+        "lastModified": 1657227945,
+        "narHash": "sha256-C8SWgXjFpcYF43qkrvehx4fVyzCzWjnTLghSSpsV4ZA=",
         "ref": "master",
-        "rev": "43ff01754680d420291f4b9b3df36d9dd68ecbda",
-        "revCount": 177203,
+        "rev": "7ccf44608d81f8a7836a8bef28a5288562a80f97",
+        "revCount": 180698,
         "type": "git",
         "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
       },
       "original": {
+        "ref": "master",
+        "rev": "7ccf44608d81f8a7836a8bef28a5288562a80f97",
+        "type": "git",
+        "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
+      }
+    },
+    "cthulhu_2": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1657229028,
+        "narHash": "sha256-0uLCBSiKsQaU6rVYmya1hh0O7f5TlC5bH8LHhNL9Apg=",
+        "ref": "master",
+        "rev": "3c8ef4961a126cf6b3778916c6f74b43dcbd710b",
+        "revCount": 180702,
+        "type": "git",
+        "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
+      },
+      "original": {
+        "ref": "master",
+        "rev": "3c8ef4961a126cf6b3778916c6f74b43dcbd710b",
         "type": "git",
         "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
       }
     },
     "do-nixpkgs": {
       "inputs": {
-        "cthulhu": "cthulhu",
+        "cthulhu": "cthulhu_2",
         "flake-utils": [
           "fnctl",
           "utils"
@@ -34,16 +54,16 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1654725094,
-        "narHash": "sha256-6IGzPDXggPl+PJrBozgcfhpB+lVcVU7fhjdawtqVRIU=",
-        "ref": "master",
-        "rev": "78e15bb882ed0e2894ff216bca9cc9bdf019bc10",
-        "revCount": 93,
+        "lastModified": 1657234515,
+        "narHash": "sha256-H0w8QLDKAOF9Neer7rR6tR/ElDyoY+KWss1vILxGXdE=",
+        "ref": "jlogemann/cleanup",
+        "rev": "9026736f127f1ebb79ad1fdae201c63c9d13232e",
+        "revCount": 97,
         "type": "git",
         "url": "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs"
       },
       "original": {
-        "ref": "master",
+        "ref": "jlogemann/cleanup",
         "type": "git",
         "url": "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs"
       }
@@ -187,6 +207,7 @@
     },
     "root": {
       "inputs": {
+        "cthulhu": "cthulhu",
         "do-nixpkgs": "do-nixpkgs",
         "fnctl": "fnctl",
         "home-manager": "home-manager",

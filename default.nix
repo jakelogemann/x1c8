@@ -47,6 +47,7 @@ nixpkgs.lib.nixosSystem rec {
         ];
         system.stateVersion = lib.mkForce specialArgs.stateVersion;
         boot = {
+          extraModprobeConfig = "options kvm_intel nested=1";
           # kernel.sysctl."kernel.modules_disabled" = 1;
           initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
           initrd.kernelModules = ["dm-snapshot" "br_netfilter"];
@@ -188,7 +189,9 @@ nixpkgs.lib.nixosSystem rec {
         hardware.pulseaudio.enable = true;
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        nix.extraOptions = ''experimental-features = nix-command flakes'';
+        nix.settings.experimental-features = ["nix-command" "flakes"];
+        nix.settings.allow-dirty = false;
+        nix.settings.warn-dirty = true;
         nix.optimise.automatic = true;
         nix.optimise.dates = ["daily"];
         nix.gc.automatic = true;
@@ -197,6 +200,9 @@ nixpkgs.lib.nixosSystem rec {
         nix.autoOptimiseStore = true;
         nix.allowedUsers = ["root" userName];
         nix.trustedUsers = ["root" userName];
+        nix.registry.fnctl.flake = self.inputs.fnctl;
+        nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+        nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         nixpkgs.config.allowUnfree = true;
         nixpkgs.overlays = lib.mkForce [self.overlays.default];
         powerManagement.cpuFreqGovernor = "powersave";
@@ -237,7 +243,7 @@ nixpkgs.lib.nixosSystem rec {
           hooks.postswitch."change-dpi" = ''
             case "$AUTORANDR_CURRENT_PROFILE" in
             default) DPI=160 ;;
-            dual|left) DPI=90 ;;
+            dual|left|right) DPI=90 ;;
             *) echo "Unknown profle: $AUTORANDR_CURRENT_PROFILE" && exit 1 ;;
             esac; echo "Xft.dpi: $DPI" | ${pkgs.xorg.xrdb}/bin/xrdb -merge
           '';
@@ -264,6 +270,13 @@ left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a5
             left.config.HDMI-1.mode = "2048x1152";
             left.config.HDMI-1.position = "0x0";
 
+            right.fingerprint.DP-2 = fingerprints.right;
+            right.config.DP-2.enable = true;
+            right.config.DP-2.primary = true;
+            right.config.DP-2.rotate = "90";
+            right.config.DP-2.mode = "2048x1152";
+            right.config.DP-2.position = "0x0";
+
             dual.fingerprint.HDMI-1 = fingerprints.left;
             dual.config.HDMI-1.enable = true;
             dual.config.HDMI-1.primary = true;
@@ -283,14 +296,16 @@ left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a5
         sound.mediaKeys.enable = true;
         swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
         system.nixos.tags = ["digitalocean"];
-        virtualisation.docker.rootless.daemon.settings.default-cgroupns-mode = "private";
-        virtualisation.docker.rootless.daemon.settings.default-ipc-mode = "private";
-        virtualisation.docker.rootless.daemon.settings.default-runtime = "runc";
-        virtualisation.docker.rootless.daemon.settings.experimental = true;
-        virtualisation.docker.rootless.daemon.settings.icc = false;
-        virtualisation.docker.rootless.enable = true;
-        virtualisation.docker.rootless.package = pkgs.docker-edge;
-        virtualisation.docker.rootless.setSocketVariable = true;
+
+        virtualisation.oci-containers = {
+          backend = "podman";
+        };
+
+        virtualisation.podman = {
+          enable = true;
+          dockerCompat = true;
+          dockerSocket.enable = true;
+        };
         programs.ssh.extraConfig = builtins.readFile ./files/ssh_config;
 
         programs.tmux = {
