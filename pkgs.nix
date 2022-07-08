@@ -111,10 +111,11 @@ with pkgs; {
       artifact
       dao
       do-xdg
+      jump
       docc
       fly
       ghe
-      jump
+      corp
       staff-cert
       vault
       vpn

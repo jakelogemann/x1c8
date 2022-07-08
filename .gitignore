@@ -1,3 +1,5 @@
+.envrc*
+!.envrc.example
 *.qcow2
 *.swo
 *.swp
@@ -9,3 +11,4 @@
 /vendor
 flake.lock
 result
+.direnv
