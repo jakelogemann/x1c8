@@ -8,9 +8,6 @@
     dao = callPackage ./dao.nix {};
     vault = callPackage ./vault.nix {};
     sammy-ca = writeText "sammy-ca.crt" (builtins.readFile ./sammy-ca.crt);
-    # fly = callPackage ./fly.nix {};
-    # docc = callPackage ./docc.nix {};
-
     ghe = (writeShellApplication {
       name = "ghe";
       runtimeInputs = [gh];
