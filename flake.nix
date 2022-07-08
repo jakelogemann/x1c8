@@ -10,7 +10,7 @@
     };
 
     cthulhu = {
-      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu?ref=master&rev=7ccf44608d81f8a7836a8bef28a5288562a80f97";
+      follows = "do-nixpkgs/cthulhu";
       flake = false;
     };
 

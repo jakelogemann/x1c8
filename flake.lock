@@ -3,24 +3,6 @@
     "cthulhu": {
       "flake": false,
       "locked": {
-        "lastModified": 1657227945,
-        "narHash": "sha256-C8SWgXjFpcYF43qkrvehx4fVyzCzWjnTLghSSpsV4ZA=",
-        "ref": "master",
-        "rev": "7ccf44608d81f8a7836a8bef28a5288562a80f97",
-        "revCount": 180698,
-        "type": "git",
-        "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
-      },
-      "original": {
-        "ref": "master",
-        "rev": "7ccf44608d81f8a7836a8bef28a5288562a80f97",
-        "type": "git",
-        "url": "ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu"
-      }
-    },
-    "cthulhu_2": {
-      "flake": false,
-      "locked": {
         "lastModified": 1657229028,
         "narHash": "sha256-0uLCBSiKsQaU6rVYmya1hh0O7f5TlC5bH8LHhNL9Apg=",
         "ref": "master",
@@ -38,7 +20,7 @@
     },
     "do-nixpkgs": {
       "inputs": {
-        "cthulhu": "cthulhu_2",
+        "cthulhu": "cthulhu",
         "flake-utils": [
           "fnctl",
           "utils"
@@ -207,7 +189,10 @@
     },
     "root": {
       "inputs": {
-        "cthulhu": "cthulhu",
+        "cthulhu": [
+          "do-nixpkgs",
+          "cthulhu"
+        ],
         "do-nixpkgs": "do-nixpkgs",
         "fnctl": "fnctl",
         "home-manager": "home-manager",
