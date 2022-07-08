@@ -34,7 +34,8 @@ nixpkgs.lib.nixosSystem rec {
       ...
     }:
       with builtins;
-      with lib; with specialArgs; {
+      with lib;
+      with specialArgs; {
         imports = [
           do-nixpkgs.nixosModules.kolide-launcher
           # do-nixpkgs.nixosModules.sentinelone
@@ -154,7 +155,6 @@ nixpkgs.lib.nixosSystem rec {
         users.groups.${userName}.gid = 990;
         users.groups.users = {};
         users.groups.wheel = {};
-        # security.pki.certificateFiles = [ pkgs.do-nixpkgs.sammyca ];
         # virtualisation.docker.rootless.daemon.settings.fixed-cidr-v6 = "fd00::/80";
         # virtualisation.docker.rootless.daemon.settings.ipv6 = true;
         environment.pathsToLink = ["/share/zsh"];
@@ -206,12 +206,6 @@ nixpkgs.lib.nixosSystem rec {
         nixpkgs.config.allowUnfree = true;
         nixpkgs.overlays = lib.mkForce [self.overlays.default];
         powerManagement.cpuFreqGovernor = "powersave";
-        security.allowUserNamespaces = true;
-        security.forcePageTableIsolation = true;
-        security.rtkit.enable = true;
-        security.sudo.enable = true;
-        security.tpm2.enable = true;
-        security.virtualisation.flushL1DataCache = "always";
         services.acpid.enable = true;
         services.earlyoom.enable = true;
         services.earlyoom.freeMemThreshold = 10;
@@ -251,7 +245,7 @@ nixpkgs.lib.nixosSystem rec {
           profiles = let
             fingerprints = {
               builtin = "00ffffffffffff0009e5db0700000000011c0104a51f1178027d50a657529f27125054000000010101010101010101010101010101013a3880de703828403020360035ae1000001afb2c80de703828403020360035ae1000001a000000fe00424f452043510a202020202020000000fe004e4531343046484d2d4e36310a0043";
-left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f08e80030f2705a80b0588a0055502100001e000000ff0037574e354332330a2020202020000000fc0044454c4c205532373230510a20000000fd00184b1e8c3c000a2020202020200173020343f15261605f5e5d101f051404131211030207060123097f07830100006d030c001000383c20006001020367d85dc401788003e20f03e305ff01e6060701605628565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000007d";
+              left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f08e80030f2705a80b0588a0055502100001e000000ff0037574e354332330a2020202020000000fc0044454c4c205532373230510a20000000fd00184b1e8c3c000a2020202020200173020343f15261605f5e5d101f051404131211030207060123097f07830100006d030c001000383c20006001020367d85dc401788003e20f03e305ff01e6060701605628565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000007d";
               right = "00ffffffffffff0010acb7414c4b4241341e0104b53c22783eee95a3544c99260f5054a54b00e1c0d100d1c0b300a94081808100714f4dd000a0f0703e803020350055502100001a000000ff00424e4e354332330a2020202020000000fd00184b1e8c36010a202020202020000000fc0044454c4c205532373230510a200187020324f14c101f2005140413121103020123097f0783010000e305ff01e6060701605628a36600a0f0703e803020350055502100001a565e00a0a0a029503020350055502100001a114400a0800025503020360055502100001a0000000000000000000000000000000000000000000000000000000000000000000000000014";
             };
           in {
@@ -317,7 +311,7 @@ left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a5
           secureSocket = true;
           shortcut = "a";
           terminal = "tmux-256color";
-          plugins = with pkgs.tmuxPlugins; [ pain-control onedark-theme sensible ];
+          plugins = with pkgs.tmuxPlugins; [pain-control onedark-theme sensible];
         };
 
         programs.starship = {
@@ -392,6 +386,47 @@ left = "00ffffffffffff0010acb1414c534541341e0103803c2278eeee95a3544c99260f5054a5
             eval "$(${lib.getExe navi} widget zsh)"
             eval "$(${lib.getExe zoxide} init zsh)"
           '';
+        };
+
+        security = {
+          # pki.certificateFiles = [ pkgs.do-nixpkgs.sammyca ];
+          allowUserNamespaces = true;
+          forcePageTableIsolation = true;
+          rtkit.enable = true;
+          tpm2.enable = true;
+          virtualisation.flushL1DataCache = "always";
+          protectKernelImage = true;
+          polkit.adminIdentities = ["unix-user:${userName}"];
+
+          pam.u2f.enable = true;
+          pam.u2f.control = "sufficient";
+          pam.u2f.authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
+            "${userName}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
+          ]);
+
+          sudo = {
+            enable = true;
+            extraRules = [
+              {
+                users = [userName];
+                runAs = "root";
+                commands = let 
+                  mostlySafe = command: { inherit command; options = ["SETENV" "NOPASSWD"]; };
+                in [
+                  "ALL"
+                  (mostlySafe "/run/current-system/sw/bin/journalctl")
+                  (mostlySafe "/run/current-system/sw/bin/nix-collect-garbage")
+                  (mostlySafe "/run/current-system/sw/bin/nixos-rebuild")
+                  (mostlySafe "/run/current-system/sw/bin/poweroff")
+                  (mostlySafe "/run/current-system/sw/bin/reboot")
+                  (mostlySafe "/run/current-system/sw/bin/shutdown")
+                  (mostlySafe "/run/current-system/sw/bin/systemd-cgls")
+                  (mostlySafe "/run/current-system/sw/bin/systemd-cgtop")
+                  (mostlySafe "/run/current-system/sw/bin/vpn")
+                ];
+              }
+            ];
+          };
         };
       })
   ];
