@@ -36,11 +36,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1657299271,
-        "narHash": "sha256-JPete3DCcKsKG2DeQICKpZMJk2NrHY57rjMr3zpYzmU=",
+        "lastModified": 1657654133,
+        "narHash": "sha256-BRd9yxAUKBQfqss3mTzHu0I2WBlUK4ktGJV/d1S2NLE=",
         "ref": "jlogemann/cleanup",
-        "rev": "318bd78625e22adf69fd74e4ff01aa1e6f233e04",
-        "revCount": 99,
+        "rev": "6fe4027905cb871aa332a67f3fefdea92b80ad8f",
+        "revCount": 100,
         "type": "git",
         "url": "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs"
       },
