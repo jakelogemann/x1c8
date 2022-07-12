@@ -118,7 +118,6 @@ with pkgs; {
       (symlinkJoin {
         name = "cthulhu-project-bins";
         paths = [ 
-
           ## "Works on my machine" ::
           anglerfish
           artifact
@@ -148,35 +147,33 @@ with pkgs; {
           mailer
           mariner
           migrate
-
-          ## Still Testing:
-          # mongo-agent
-          # mongo-cockroach-agent
-          # netconfig
-          # netsecpol
-          # networktracerd
-          # north
-          # octopus
-          # octopus2
-          # ovsdb
-          # plinkod
-          # puffer
-          # respond
-          # rmetadata
-          # roe
-          # sealice
-          # south
-          # telemetry
-          # versiond
-          # vnc-proxy
-          # 
+          mongo-cockroach-agent
+          netconfig
+          netsecpol
+          networktracerd
+          north
+          octopus2
+          ovsdb
+          plinkod
+          respond
+          rmetadata
+          roe
+          sealice
+          south
+          telemetry
+          versiond
+          vnc-proxy
+           
           ## !Work on my machine ::
-          # imgdev     ## missing zlib.pc
-          # hvd        ## missing librados, libguestfs.
-          # engineroom ## missing librados, zlib.pc
-          # evacuator  ## missing zlib.pc
-          # hvdropletmetrics  ## missing libvirt.pc
+          # mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
+          # imgdev                 ## missing zlib.pc
+          # hvd                    ## missing librados, libguestfs.
+          # engineroom             ## missing librados, zlib.pc
+          # evacuator              ## missing zlib.pc
+          # hvdropletmetrics       ## missing libvirt.pc
           # libvirt-hook-processor ## missing libvirt.pc
+          # puffer                 ## missing zlib.pc
+          # octopus                ## missing libvirt.pc
         ];
       })
     ]);
