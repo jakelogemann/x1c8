@@ -137,10 +137,10 @@ with pkgs; {
           hvaddr
           hvannounced
           hvflow
-          jump
           hvrouter
           hvvalidate
           ipam
+          jump
           k8s-updater
           looker
           loudmouth
@@ -165,15 +165,15 @@ with pkgs; {
           vnc-proxy
            
           ## !Work on my machine ::
-          # mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
-          # imgdev                 ## missing zlib.pc
-          # hvd                    ## missing librados, libguestfs.
           # engineroom             ## missing librados, zlib.pc
           # evacuator              ## missing zlib.pc
+          # hvd                    ## missing librados, libguestfs.
           # hvdropletmetrics       ## missing libvirt.pc
+          # imgdev                 ## missing zlib.pc
           # libvirt-hook-processor ## missing libvirt.pc
-          # puffer                 ## missing zlib.pc
+          # mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
           # octopus                ## missing libvirt.pc
+          # puffer                 ## missing zlib.pc
         ];
       })
     ]);
