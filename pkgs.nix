@@ -116,7 +116,7 @@ with pkgs; {
       vault
       vpn
       (symlinkJoin {
-        name = "cthulhu-project-bins";
+        name = "cthulhu-bins-by-project";
         paths = [ 
           ## "Works on my machine" ::
           anglerfish
