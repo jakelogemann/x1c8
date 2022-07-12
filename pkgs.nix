@@ -108,16 +108,77 @@ with pkgs; {
     ])
     ++ lib.optionals (builtins.hasAttr "do-nixpkgs" pkgs) (with pkgs.do-nixpkgs; [
       (writeShellScriptBin "data_bags" "cd ~/do/chef/data_bags && ${lib.getExe jless} $(find . -mindepth 1 -type f -name '*.json' | ${skim}/bin/sk)")
-      artifact
       dao
       do-xdg
-      jump
-      docc
       fly
       ghe
-      corp
       staff-cert
       vault
       vpn
+      (symlinkJoin {
+        name = "cthulhu-project-bins";
+        paths = [ 
+
+          ## "Works on my machine" ::
+          anglerfish
+          artifact
+          backup_scheduler
+          canary
+          corp
+          courier
+          deployer
+          deptracker
+          dev_productivity
+          dns
+          docc
+          droplet
+          edgenotifications
+          emu
+          jump
+
+          ## Still Testing:
+          # harpoon
+          # hvaddr
+          # hvannounced
+          # hvdropletmetrics
+          # hvflow
+          # hvrouter
+          # hvvalidate
+          # imgdev
+          # ipam
+          # k8s-updater
+          # libvirt-hook-processor
+          # looker
+          # loudmouth
+          # mailer
+          # mariner
+          # migrate
+          # mongo-agent
+          # mongo-cockroach-agent
+          # netconfig
+          # netsecpol
+          # networktracerd
+          # north
+          # octopus
+          # octopus2
+          # ovsdb
+          # plinkod
+          # puffer
+          # respond
+          # rmetadata
+          # roe
+          # sealice
+          # south
+          # telemetry
+          # versiond
+          # vnc-proxy
+
+          ## !Work on my machine ::
+          # imgdev     ## missing zlib.pc
+          # hvd        ## missing librados, libguestfs.
+          # engineroom ## missing librados, zlib.pc
+          # evacuator  ## missing zlib.pc
+        ];
+      })
     ]);
 }
