@@ -134,25 +134,22 @@ with pkgs; {
           droplet
           edgenotifications
           emu
+          harpoon
+          hvaddr
+          hvannounced
+          hvflow
           jump
+          hvrouter
+          hvvalidate
+          ipam
+          k8s-updater
+          looker
+          loudmouth
+          mailer
+          mariner
+          migrate
 
           ## Still Testing:
-          # harpoon
-          # hvaddr
-          # hvannounced
-          # hvdropletmetrics
-          # hvflow
-          # hvrouter
-          # hvvalidate
-          # imgdev
-          # ipam
-          # k8s-updater
-          # libvirt-hook-processor
-          # looker
-          # loudmouth
-          # mailer
-          # mariner
-          # migrate
           # mongo-agent
           # mongo-cockroach-agent
           # netconfig
@@ -172,12 +169,14 @@ with pkgs; {
           # telemetry
           # versiond
           # vnc-proxy
-
+          # 
           ## !Work on my machine ::
           # imgdev     ## missing zlib.pc
           # hvd        ## missing librados, libguestfs.
           # engineroom ## missing librados, zlib.pc
           # evacuator  ## missing zlib.pc
+          # hvdropletmetrics  ## missing libvirt.pc
+          # libvirt-hook-processor ## missing libvirt.pc
         ];
       })
     ]);
