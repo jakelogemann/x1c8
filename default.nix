@@ -48,6 +48,7 @@ nixpkgs.lib.nixosSystem rec {
         ];
         system.stateVersion = lib.mkForce specialArgs.stateVersion;
         boot = {
+          binfmt.emulatedSystems = [ "aarch64-linux" ];
           enableContainers = true;
           extraModprobeConfig = "options kvm_intel nested=1";
           # kernel.sysctl."kernel.modules_disabled" = 1;
