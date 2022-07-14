@@ -21,7 +21,7 @@
 
     do-nixpkgs = {
       inputs.nixpkgs.follows = "fnctl/nixpkgs";
-      ref = "jlogemann/cleanup";
+      ref = "master";
       type = "git";
       url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs";
       inputs.flake-utils.follows = "fnctl/utils";

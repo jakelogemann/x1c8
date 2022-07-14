@@ -116,64 +116,41 @@ with pkgs; {
       vault
       vpn
       (symlinkJoin {
-        name = "cthulhu-bins-by-project";
+        name = "cthulhu-bins";
         paths = [ 
-          ## "Works on my machine" ::
-          anglerfish
-          artifact
-          backup_scheduler
-          canary
-          corp
-          courier
+          (writeShellScriptBin "show-cthulhu-bins" "clear; dir=\"$(dirname $(readlink $(which docc)))\"; echo \"$dir contains: \" && ${lib.getExe lsd} --date=relative -lFLAh \"$dir\"; echo; jump --version; echo; docc --version;")
+          artifactctl
+          autoreview
+          certdump
           deployer
-          deptracker
-          dev_productivity
-          dns
+          deptrackerd
           docc
-          droplet
-          edgenotifications
-          emu
-          harpoon
-          hvaddr
-          hvannounced
-          hvflow
-          hvrouter
-          hvvalidate
-          ipam
-          jump
-          k8s-updater
-          looker
-          loudmouth
-          mailer
-          mariner
-          migrate
-          mongo-cockroach-agent
-          netconfig
-          netsecpol
-          networktracerd
-          north
-          octopus2
-          ovsdb
-          plinkod
-          respond
-          rmetadata
-          roe
-          sealice
-          south
-          telemetry
-          versiond
-          vnc-proxy
+          gitdash
+          gtartifacts
+          hvaddrctl
+          hvannouncectl
+          hvrouterctl
+          ipamgetctl
+          jump 
+          netsecpolctl
+          northctl
+          plinkoctl
+          respondctl
+          rmetadatactl
+          rmetadataflowctl
+          southctl
+          tracectl
            
           ## !Work on my machine ::
-          # engineroom             ## missing librados, zlib.pc
-          # evacuator              ## missing zlib.pc
-          # hvd                    ## missing librados, libguestfs.
-          # hvdropletmetrics       ## missing libvirt.pc
-          # imgdev                 ## missing zlib.pc
-          # libvirt-hook-processor ## missing libvirt.pc
-          # mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
-          # octopus                ## missing libvirt.pc
-          # puffer                 ## missing zlib.pc
+          #project-engineroom             ## missing librados, zlib.pc
+          #project-evacuator              ## missing zlib.pc
+          #project-hvd                    ## missing librados, libguestfs.
+          #project-hvdropletmetrics       ## missing libvirt.pc
+          #project-imgdev                 ## missing zlib.pc
+          #project-libvirt-hook-processor ## missing libvirt.pc
+          #project-mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
+          #project-octopus                ## missing libvirt.pc
+          #project-puffer                 ## missing zlib.pc
         ];
       })
     ]);
