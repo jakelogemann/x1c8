@@ -5,12 +5,12 @@
     nixpkgs.url = "nixpkgs/nixos-22.05";
 
     fnctl = {
-      url = "github:fnctl/fnctl.nix";
+      url = "github:fnctl/nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cthulhu = {
-      follows = "do-nixpkgs/cthulhu";
+      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu?ref=master&rev=3281f754a4c2b40b4a219ba732fb66496236da9b";
       flake = false;
     };
 
@@ -25,6 +25,7 @@
       type = "git";
       url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs";
       inputs.flake-utils.follows = "fnctl/utils";
+      inputs.cthulhu.follows = "cthulhu";
       inputs.home-manager.follows = "home-manager";
     };
   };
