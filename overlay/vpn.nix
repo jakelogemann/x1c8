@@ -1,4 +1,8 @@
-{openconnect, lib, writeShellApplication}:
+{
+  openconnect,
+  lib,
+  writeShellApplication,
+}:
 writeShellApplication {
   name = "vpn";
   runtimeInputs = [openconnect];

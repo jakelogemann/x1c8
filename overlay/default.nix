@@ -1,17 +1,25 @@
-{ self, ... } @ inputs: final: prev: with prev; rec {
+{self, ...} @ inputs: final: prev:
+with prev; rec {
   fnctl = self.inputs.fnctl.packages.${system};
   commonUtils = callPackage ./commonUtils.nix {};
   hwUtils = callPackage ./hwUtils.nix {};
-  do-nixpkgs = (self.inputs.do-nixpkgs.packages.${system} // {
-    vpn = callPackage ./vpn.nix {};
-    do-xdg = callPackage ./do-xdg {};
-    dao = callPackage ./dao.nix {};
-    vault = callPackage ./vault.nix {};
-    sammy-ca = writeText "sammy-ca.crt" (builtins.readFile ./sammy-ca.crt);
-    ghe = (writeShellApplication {
-      name = "ghe";
-      runtimeInputs = [gh];
-      text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-    });
-  });
+  do-nixpkgs =
+    self.inputs.do-nixpkgs.packages.${system}
+    // {
+      vpn = callPackage ./vpn.nix {};
+      do-xdg = callPackage ./do-xdg {};
+      dao = callPackage ./dao.nix {};
+      vault = callPackage ./vault.nix {};
+      sammy-ca = writeText "sammy-ca.crt" (builtins.readFile ./sammy-ca.crt);
+      gh = writeShellApplication {
+        name = "gh";
+        runtimeInputs = [gh];
+        text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.com'" "gh" "\"$@\""];
+      };
+      ghe = writeShellApplication {
+        name = "ghe";
+        runtimeInputs = [gh];
+        text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
+      };
+    };
 }

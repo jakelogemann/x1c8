@@ -21,6 +21,10 @@ nixpkgs.lib.nixosSystem rec {
     userName = "jlogemann";
     userEmail = "jlogemann@digitalocean.com";
     userFullName = "Jake Logemann";
+    dnsServers = nixpkgs.lib.concatStringsSep "," [
+      "10.124.57.141"
+      "10.124.57.160"
+    ];
     enableDocs = false;
   };
   modules = [
@@ -40,15 +44,10 @@ nixpkgs.lib.nixosSystem rec {
           do-nixpkgs.nixosModules.kolide-launcher
           # do-nixpkgs.nixosModules.sentinelone
           self.inputs.fnctl.inputs.hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
-          self.inputs.home-manager.nixosModules.home-manager
-          ./network.nix
-          ./home.nix
-          ./neovim.nix
-          ./pkgs.nix
         ];
         system.stateVersion = lib.mkForce specialArgs.stateVersion;
         boot = {
-          binfmt.emulatedSystems = [ "aarch64-linux" ];
+          binfmt.emulatedSystems = ["aarch64-linux"];
           enableContainers = true;
           extraModprobeConfig = "options kvm_intel nested=1";
           # kernel.sysctl."kernel.modules_disabled" = 1;
@@ -109,6 +108,87 @@ nixpkgs.lib.nixosSystem rec {
           shell = pkgs.zsh;
           uid = 1000;
           isNormalUser = true;
+        };
+        programs.neovim = {
+          enable = true;
+          vimAlias = true;
+          defaultEditor = true;
+          viAlias = true;
+          configure.packages.default.start = with pkgs.vimPlugins; [
+            vim-lastplace
+            telescope-nvim
+            nvim-lspconfig
+            vim-nix
+            nvim-web-devicons
+            i3config-vim
+            vim-easy-align
+            vim-gnupg
+            vim-cue
+            vim-go
+            vim-hcl
+            (nvim-treesitter.withPlugins (p:
+              builtins.map (n: p."tree-sitter-${n}") [
+                "bash"
+                "c"
+                "comment"
+                "cpp"
+                "css"
+                "go"
+                "html"
+                "json"
+                "lua"
+                "make"
+                "markdown"
+                "nix"
+                "python"
+                "ruby"
+                "rust"
+                "toml"
+                "vim"
+                "yaml"
+              ]))
+            onedarkpro-nvim
+          ];
+
+          configure.customRC = ''
+            colorscheme onedarkpro
+            set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
+            set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
+            set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
+            set backspace=indent,eol,start background=dark
+            let mapleader=' '
+
+            if has("user_commands")
+            command! -bang -nargs=? -complete=file E e<bang> <args>
+            command! -bang -nargs=? -complete=file W w<bang> <args>
+            command! -bang -nargs=? -complete=file Wq wq<bang> <args>
+            command! -bang -nargs=? -complete=file WQ wq<bang> <args>
+            command! -bang Wa wa<bang>
+            command! -bang WA wa<bang>
+            command! -bang Q q<bang>
+            command! -bang QA qa<bang>
+            command! -bang Qa qa<bang>
+            endif
+
+            function! NumberToggle()
+            if(&relativenumber == 1) set nu nornu
+            else set nonu rnu
+            endif
+            endfunc
+
+            nnoremap <leader>r :call NumberToggle()<cr>
+            nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
+            nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
+            nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
+            nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
+            nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
+            nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
+            nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
+            nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
+            nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
+            nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
+
+          '';
         };
 
         programs.gnupg.agent.enable = true;
@@ -192,22 +272,20 @@ nixpkgs.lib.nixosSystem rec {
         hardware.opengl.enable = true;
         hardware.opengl.extraPackages = with pkgs; [intel-compute-runtime];
         hardware.pulseaudio.enable = true;
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
         nix.daemonCPUSchedPolicy = "idle";
         nix.daemonIOSchedPriority = 3;
         nix.settings.experimental-features = ["nix-command" "flakes"];
         nix.settings.allow-dirty = true;
         nix.settings.log-lines = 50;
         nix.settings.warn-dirty = false;
-        nix.settings.max-free = (64 * 1024 * 1024 * 1024);
+        nix.settings.max-free = 64 * 1024 * 1024 * 1024;
         nix.optimise.automatic = true;
         nix.optimise.dates = ["daily"];
         nix.gc.automatic = true;
         nix.gc.dates = "daily";
-        nix.autoOptimiseStore = true;
-        nix.allowedUsers = ["root" userName];
-        nix.trustedUsers = ["root" userName];
+        nix.settings.auto-optimise-store = true;
+        nix.settings.allowed-users = ["root" userName];
+        nix.settings.trusted-users = ["root" userName];
         nix.registry.fnctl.flake = self.inputs.fnctl;
         nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
@@ -234,7 +312,6 @@ nixpkgs.lib.nixosSystem rec {
         services.xserver.enableCtrlAltBackspace = true;
         services.xserver.layout = "us";
         services.xserver.libinput.touchpad.disableWhileTyping = true;
-        services.xserver.useGlamor = true;
         services.xserver.videoDrivers = ["modesetting"];
         services.xserver.windowManager.i3.enable = true;
         services.xserver.windowManager.i3.package = pkgs.i3-gaps;
@@ -418,8 +495,11 @@ nixpkgs.lib.nixosSystem rec {
               {
                 users = [userName];
                 runAs = "root";
-                commands = let 
-                  mostlySafe = command: { inherit command; options = ["SETENV" "NOPASSWD"]; };
+                commands = let
+                  mostlySafe = command: {
+                    inherit command;
+                    options = ["SETENV" "NOPASSWD"];
+                  };
                 in [
                   "ALL"
                   (mostlySafe "/run/current-system/sw/bin/journalctl")
@@ -431,11 +511,329 @@ nixpkgs.lib.nixosSystem rec {
                   (mostlySafe "/run/current-system/sw/bin/systemd-cgls")
                   (mostlySafe "/run/current-system/sw/bin/systemd-cgtop")
                   (mostlySafe "/run/current-system/sw/bin/vpn")
+                  (mostlySafe "/run/current-system/sw/bin/dmesg")
+                  (mostlySafe "/run/current-system/sw/bin/systemctl")
                 ];
               }
             ];
           };
         };
+
+        networking = {
+          enableIPv6 = true;
+          firewall.allowPing = true;
+          firewall.allowedTCPPorts = [];
+          firewall.allowedUDPPorts = [];
+          firewall.autoLoadConntrackHelpers = true;
+          firewall.checkReversePath = true;
+          firewall.enable = true;
+          firewall.logRefusedConnections = true;
+          firewall.logRefusedPackets = true;
+          firewall.logReversePathDrops = true;
+          firewall.pingLimit = "--limit 1/minute --limit-burst 5";
+          firewall.rejectPackets = true;
+          nameservers = mkForce ["127.0.0.1" "::1"];
+          resolvconf.enable = mkForce false;
+          dhcpcd.extraConfig = mkForce "nohook resolv.conf";
+          networkmanager.dns = mkForce "none";
+          hostName = hostName;
+          domain = "local";
+
+          interfaces.enp45s0u2u3 = {
+            useDHCP = true;
+            macAddress = "00:e0:4c:20:02:5e";
+
+            # ipv4.addresses = [{ address = "192.168.8.77"; prefixLength = 24; }];
+            # ipv4.routes = [{ address = "192.168.8.0"; prefixLength = 24; via = "192.168.8.1"; }];
+          };
+
+          interfaces.enp45s0u1u3u2c2 = {
+            useDHCP = true;
+            # ipv4.addresses = [{ address = "192.168.8.77"; prefixLength = 24; }];
+            # ipv4.routes = [{ address = "192.168.8.0"; prefixLength = 24; via = "192.168.8.1"; }];
+          };
+          networkmanager.enable = true;
+          useDHCP = false;
+          useHostResolvConf = true;
+          wireless.enable = false;
+          wireless.iwd.enable = false;
+          wireless.userControlled.enable = true;
+          networkmanager.wifi.powersave = true;
+          networkmanager.plugins = with pkgs; [networkmanager-openconnect];
+        };
+
+        services.dnscrypt-proxy2 = {
+          enable = mkForce true;
+          settings = {
+            # Immediately respond to A and AAAA queries for host names without a
+            # domain name.
+            block_unqualified = true;
+            # Immediately respond to queries for local zones instead
+            # of leaking them to upstream resolvers (always causing errors or
+            # timeouts).
+            block_undelegated = true;
+            # ------------------------
+            server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
+            ipv6_servers = true;
+            ipv4_servers = true;
+            use_syslog = true;
+            require_nolog = true;
+            require_nofilter = false;
+            edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
+            require_dnssec = true;
+            blocked_query_response = "refused";
+            block_ipv6 = false;
+
+            allowed_ips.allowed_ips_file =
+              /*
+              Allowed IP lists support the same patterns as IP blocklists
+              If an IP response matches an allow ip entry, the corresponding session
+              will bypass IP filters.
+
+              Time-based rules are also supported to make some websites only accessible at specific times of the day.
+              */
+              pkgs.writeText "allowed_ips" ''
+              '';
+
+            cloaking_rules =
+              /*
+              Cloaking returns a predefined address for a specific name.
+              In addition to acting as a HOSTS file, it can also return the IP address
+              of a different name. It will also do CNAME flattening.
+              */
+              pkgs.writeText "cloaking_rules" ''
+                # The following rules force "safe" (without adult content) search
+                # results from Google, Bing and YouTube.
+                  www.google.*             forcesafesearch.google.com
+                  www.bing.com             strict.bing.com
+                  =duckduckgo.com          safe.duckduckgo.com
+                  www.youtube.com          restrictmoderate.youtube.com
+                  m.youtube.com            restrictmoderate.youtube.com
+                  youtubei.googleapis.com  restrictmoderate.youtube.com
+                  youtube.googleapis.com   restrictmoderate.youtube.com
+                  www.youtube-nocookie.com restrictmoderate.youtube.com
+              '';
+
+            forwarding_rules = pkgs.writeText "forwarding_rules" ''
+              internal.digitalocean.com ${dnsServers}
+              *.internal.digitalocean.com ${dnsServers}
+              10.in.arpa ${dnsServers}
+            '';
+            cloak_ttl = 600;
+            allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
+            blocked_names.blocked_names_file = pkgs.writeText "blocked_names" "";
+            blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
+            query_log.file = "/dev/stdout";
+            query_log.ignored_qtypes = ["DNSKEY"];
+            blocked_names.log_file = "/dev/stdout";
+            allowed_ips.log_file = "/dev/stdout";
+            blocked_ips.log_file = "/dev/stdout";
+            allowed_names.log_file = "/dev/stdout";
+            sources = {
+              public-resolvers = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 72;
+                prefix = "";
+              };
+              relays = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 72;
+                prefix = "";
+              };
+              odoh-servers = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 24;
+                prefix = "";
+              };
+              odoh-relays = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 24;
+                prefix = "";
+              };
+            };
+          };
+        };
+
+        # systemd.network.links."10-mon0" = { matchConfig.PermanentMACAddress = "08:92:04:d4:a6:59"; linkConfig.Name = "mon0"; };
+
+        systemd.services.dnscrypt-proxy2.serviceConfig.StateDirectory = mkForce "dnscrypt-proxy2";
+        boot.extraModulePackages = with pkgs; [
+          linuxPackages_latest.acpi_call
+          linuxPackages_latest.cpupower
+          tpm2-tools
+          tpm2-tss
+          i2c-tools
+        ];
+        environment.systemPackages = with pkgs;
+          [
+            (pkgs.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+            (pkgs.writeShellScriptBin "list-git-vars" "${lib.getExe bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe git} var -l | sort)")
+            (pkgs.writeShellScriptBin "system-repl" (let
+              entrypoint = ''
+                rec {
+                  inherit (flake.outputs.nixosConfigurations."${hostName}") pkgs lib options;
+                  currentConfig = flake.outputs.nixosConfigurations."${hostName}".config;
+                  inherit (flake.inputs) nixpkgs;
+                  flake = builtins.getFlake "${self}";
+                  hostName = "${hostName}";
+                  system = "${system}";
+                }
+              '';
+            in "exec nix repl \"$@\" ${writeText "entrypoint.nix" entrypoint}"))
+
+            commonUtils
+            aide
+            alejandra
+            docker-credential-helpers
+            expect
+            jless
+            lynis
+            navi
+            yubikey-manager
+            ossec
+            ranger
+            dogdns
+            shellcheck
+            buildah
+            skopeo
+            nerdctl
+            _1password
+          ]
+          ++ lib.optionals (config.services.xserver.enable) (with pkgs; [
+            arandr
+            scrot
+            firefox
+            flameshot
+            xbindkeys
+            xclip
+            xdotool
+            xorg.xev
+            xorg.xprop
+            _1password-gui
+
+            (pkgs.writeShellApplication {
+              name = "alacritty";
+              runtimeInputs = [alacritty terminus-nerdfont xcwd];
+              text = let
+                config = rec {
+                  cursor.style.blinking = "On";
+                  cursor.style.shape = "block";
+                  env.TERM = "alacritty";
+                  font.builtin_box_drawing = false;
+                  font.glyph_offset.x = -1;
+                  font.glyph_offset.y = -1;
+                  font.normal.family = "TerminessTTF Nerd Font Mono";
+                  font.offset.x = 0;
+                  font.offset.y = 1;
+                  font.size = 9.5;
+                  # font.use_thin_strokes = true;
+                  live_config_reload = false;
+                  mouse.hide_when_typing = true;
+                  selection.save_to_clipboard = true;
+                  window.dynamic_padding = true;
+                  window.padding.x = 5;
+                  window.padding.y = 5;
+                };
+              in
+                lib.concatStringsSep " " [
+                  "exec alacritty"
+                  "--working-directory=\"$(xcwd)\""
+                  "--config-file='${writeText "alacritty.yml" (builtins.toJSON config)}'"
+                  "\"$@\""
+                ];
+            })
+
+            (pkgs.writeShellApplication {
+              name = "rofi";
+              runtimeInputs = [rofi terminus-nerdfont];
+              text = let
+              in
+                lib.concatStringsSep " " [
+                  "exec rofi"
+                  "-markup"
+                  "-modi drun,ssh,window,run"
+                  "-font 'TerminessTTF Nerd Font Mono 12'"
+                  "\"$@\""
+                ];
+            })
+          ])
+          ++ lib.optionals (builtins.hasAttr "do-nixpkgs" pkgs) (with pkgs.do-nixpkgs; [
+            (pkgs.writeShellScriptBin "data_bags" "cd ~/do/chef/data_bags && ${lib.getExe jless} $(find . -mindepth 1 -type f -name '*.json' | ${skim}/bin/sk)")
+            dao
+            do-xdg
+            fly
+            gh
+            ghe
+            staff-cert
+            vault
+            vpn
+            (symlinkJoin {
+              name = "cthulhu-bins";
+              paths = [
+                (pkgs.writeShellScriptBin "show-cthulhu-bins" "clear; dir=\"$(dirname $(readlink $(which docc)))\"; echo \"$dir contains: \" && ${lib.getExe lsd} --date=relative -lFLAh \"$dir\"; echo; jump --version; echo; docc --version;")
+                artifactctl
+                autoreview
+                certdump
+                deployer
+                deptrackerd
+                docc
+                gitdash
+                gtartifacts
+                hvaddrctl
+                hvannouncectl
+                hvrouterctl
+                ipamgetctl
+                jump
+                netsecpolctl
+                northctl
+                plinkoctl
+                respondctl
+                rmetadatactl
+                rmetadataflowctl
+                southctl
+                tracectl
+
+                ## !Work on my machine ::
+                #project-engineroom             ## missing librados, zlib.pc
+                #project-evacuator              ## missing zlib.pc
+                #project-hvd                    ## missing librados, libguestfs.
+                #project-hvdropletmetrics       ## missing libvirt.pc
+                #project-imgdev                 ## missing zlib.pc
+                #project-libvirt-hook-processor ## missing libvirt.pc
+                #project-mongo-agent            ## missing libsystemd ("systemd/sd-journal.h")
+                #project-octopus                ## missing libvirt.pc
+                #project-puffer                 ## missing zlib.pc
+              ];
+            })
+          ]);
       })
   ];
 }
+# vim: ft=nix fdm=indent fdl=0 fen fdo=all fcl=all
+

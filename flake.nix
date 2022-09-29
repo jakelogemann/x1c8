@@ -2,31 +2,26 @@
   description = "laptop";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-22.05";
+    nixpkgs.url = "nixpkgs/nixos-unstable";
 
     fnctl = {
-      url = "github:fnctl/nix";
+      url = "github:jakelogemann/fnctl";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cthulhu = {
-      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/cthulhu?ref=master&rev=3281f754a4c2b40b4a219ba732fb66496236da9b";
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "cthulhu";
+      # url = "git+https://github.internal.digitalocean.com/digitalocean/cthulhu?ref=master&rev";
       flake = false;
     };
 
-    home-manager = {
-      inputs.nixpkgs.follows = "fnctl/nixpkgs";
-      url = "github:nix-community/home-manager";
-    };
-
     do-nixpkgs = {
-      inputs.nixpkgs.follows = "fnctl/nixpkgs";
-      ref = "master";
-      type = "git";
-      url = "git+ssh://git@github.internal.digitalocean.com/digitalocean/do-nixpkgs";
-      inputs.flake-utils.follows = "fnctl/utils";
+      url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
       inputs.cthulhu.follows = "cthulhu";
-      inputs.home-manager.follows = "home-manager";
     };
   };
 
@@ -37,6 +32,6 @@
   } @ inputs': rec {
     inherit (fnctl) lib formatter devShells;
     overlays.default = import ./overlay/default.nix inputs';
-    nixosConfigurations.laptop = import ./default.nix inputs';
+    nixosConfigurations.laptop = import ./system.nix inputs';
   };
 }
