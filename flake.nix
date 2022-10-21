@@ -15,6 +15,14 @@
       inputs.nix-filter.follows = "nix-filter";
     };
 
+    blocklists = {
+      type = "github";
+      owner = "stevenblack";
+      repo = "hosts";
+      ref = "master";
+      flake = false;
+    };
+
     dotfiles = {
       url = "git+https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git";
       flake = false;
@@ -113,6 +121,7 @@
       services.sentinelone.enable = true;
       services.kolide-launcher.enable = true;
       services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
+      nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
       system.nixos.tags = ["digitalocean"];
       environment.systemPackages = with pkgs; [
         (pkgs.symlinkJoin {
@@ -249,7 +258,7 @@
           zstyle ':vcs_info:*' enable git cvs svn hg
           hash -d current-sw=/run/current-system/sw
           hash -d booted-sw=/run/booted-system/sw
-
+          source "${./pkg/zshrc}"
         '';
       };
     };
@@ -499,13 +508,13 @@
             nix.gc.dates = "daily";
             nix.optimise.automatic = true;
             nix.optimise.dates = ["daily"];
-            nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
             nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
             nix.settings.allow-dirty = true;
             nix.settings.cores = 2;
             nix.settings.allowed-users = ["root" prefs.user.login];
             nix.settings.auto-optimise-store = true;
             nix.settings.experimental-features = ["nix-command" "flakes"];
+            nix.settings.system-features = ["kvm"];
             nix.settings.log-lines = 50;
             nix.settings.max-free = 64 * 1024 * 1024 * 1024;
             nix.settings.trusted-users = ["root" prefs.user.login];
@@ -716,7 +725,9 @@
                   '';
                 cloak_ttl = 600;
                 allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
-                blocked_names.blocked_names_file = pkgs.writeText "blocked_names" "";
+                blocked_names.blocked_names_file = pkgs.writeText "blocked_names" 
+                  (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
+
                 blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
                 query_log.file = "/dev/stdout";
                 query_log.ignored_qtypes = ["DNSKEY"];
@@ -794,20 +805,19 @@
                   name = "system-repl";
                   runtimeInputs = with pkgs; [gum nix];
                   text = let
-                    hostName = prefs.host.name;
-                    entrypoint = pkgs.writeText "entrypoint.nix" ''
+                    nixFile = pkgs.writeText "system-repl.nix" ''
                       rec {
-                      inherit (flake.outputs.nixosConfigurations."${hostName}") pkgs lib options config;
+                      inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs lib options config;
                       inherit (flake.inputs) nixpkgs do-nixpkgs nixos-hardware;
                       flake = builtins.getFlake "${prefs.repo.path}";
                       # flake = builtins.getFlake "${self}";
-                      hostName = "${hostName}";
+                      hostName = "${prefs.host.name}";
                       system = "${system}";
                       }
                     '';
                   in ''
-                    FOREGROUND=4 gum style "starting system-repl on ${hostName}"
-                    exec nix repl ${entrypoint}
+                    FOREGROUND=4 gum style "starting system-repl.."
+                    exec nix repl ${nixFile}
                   '';
                 })
 

@@ -17,6 +17,23 @@
         "type": "github"
       }
     },
+    "blocklists": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1666276514,
+        "narHash": "sha256-2hFDC3KD17RyrO5wGnRtkRDtxrceVJFnA02/20RfRd0=",
+        "owner": "stevenblack",
+        "repo": "hosts",
+        "rev": "cec39f13f5343ca8d4dc92d288f18d5a77d39a2a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "stevenblack",
+        "ref": "master",
+        "repo": "hosts",
+        "type": "github"
+      }
+    },
     "cicd": {
       "flake": false,
       "locked": {
@@ -335,6 +352,7 @@
     "root": {
       "inputs": {
         "AstroNvim": "AstroNvim",
+        "blocklists": "blocklists",
         "cicd": "cicd",
         "cthulhu": "cthulhu",
         "dao": "dao",
