@@ -29,6 +29,7 @@ function has-path(){ list-path | grep -q "$1"; }
 function list-hosts(){ column -t </etc/hosts ;}
 function list-path(){ echo $PATH | tr ':' '\n'; }
 function list-users(){ column -ts: </etc/passwd | sort -nk3 ;}
+function list-keybinds(){ column -t <(bindkey|xargs -n2 echo) ;}
 function local-shell-config(){ echo "${HOME}/.$(shell-name)rc.local"; }
 function maybe-add-path(){ has-path "$1" || test ! -d "$1" || export PATH="$1:$PATH"; }
 function maybe-eval-bin(){ missing-bin "$1" || eval "$($@)"; }
@@ -58,15 +59,6 @@ maybe-add-path "/usr/bin"
 maybe-add-path "/usr/local/bin"
 maybe-add-path "/usr/sbin"
 
-maybe-source   /opt/homebrew/opt/fzf/shell/key-bindings.zsh
-maybe-source   /opt/homebrew/opt/fzf/shell/completion.zsh
-maybe-eval-bin starship init "${SHELL_NAME}"
-maybe-eval-bin zoxide init "${SHELL_NAME}"
-maybe-source   "$HOME/.aliases.sh"
-maybe-source   "$HOME/.cargo/env"
-maybe-source   "$HOME/.iterm2_shell_integration.${SHELL_NAME}"
-maybe-source   "$HOME/.nix-profile/etc/profile.d/nix.sh"
-# maybe-source   "$HOME/.config/zsh/plugins/forgit.plugin.zsh"
 
 #=======================================================================
 
@@ -292,4 +284,6 @@ bindkey -M isearch " " magic-space
 
 #=======================================================================
 
+# maybe-source   "$HOME/.aliases.sh"
+maybe-source   "$HOME/.cargo/env"
 maybe-source   "$HOME/.zshrc.local"
