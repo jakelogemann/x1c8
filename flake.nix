@@ -16,7 +16,7 @@
     };
 
     dotfiles = {
-      url = "github:jakelogemann/.config";
+      url = "git+https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git";
       flake = false;
     };
 
@@ -24,6 +24,7 @@
       type = "github";
       owner = "astronvim";
       repo = "astronvim";
+      ref = "v2.4.2";
       flake = false;
     };
 
@@ -248,11 +249,6 @@
           zstyle ':vcs_info:*' enable git cvs svn hg
           hash -d current-sw=/run/current-system/sw
           hash -d booted-sw=/run/booted-system/sw
-          autoload -U edit-command-line && zle -N edit-command-line && bindkey '\C-x\C-e' edit-command-line
-          bindkey '\C-k' up-line-or-history
-          bindkey '\C-j' down-line-or-history
-          bindkey '\C-h' backward-word
-          bindkey '\C-l' forward-word
 
         '';
       };
@@ -437,6 +433,16 @@
             environment.shellAliases.lla = "${lib.getExe pkgs.lsd} -la";
             environment.shellAliases.ls = lib.getExe pkgs.lsd;
             environment.shellAliases.lt = "${lib.getExe pkgs.lsd} --tree";
+            environment.shellAliases.systemctl-fzf-service="systemctl --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'system services> '";
+            environment.shellAliases.systemctl-fzf-user-service="systemctl --user --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'user services> '";
+            environment.shellAliases.systemctl-edit="sudo systemctl edit --full --force";
+            environment.shellAliases.tmux="tmux -2u";
+            environment.shellAliases.dmesg="sudo dmesg";
+            environment.shellAliases.tf="terraform";
+            environment.shellAliases.dc="docker compose";
+            environment.shellAliases.g="git";
+            environment.shellAliases.find-broken-symlinks="find -L . -type l 2>/dev/null";
+            environment.shellAliases.rm-broken-symlinks="find -L . -type l -exec rm -fv {} \; 2>/dev/null";
             environment.variables.EDITOR = "nvim";
             fileSystems."/".device = "/dev/disk/by-uuid/45264d57-59a7-428b-a85a-35fa35c1ddeb";
             fileSystems."/".fsType = "btrfs";
@@ -496,6 +502,7 @@
             nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
             nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
             nix.settings.allow-dirty = true;
+            nix.settings.cores = 2;
             nix.settings.allowed-users = ["root" prefs.user.login];
             nix.settings.auto-optimise-store = true;
             nix.settings.experimental-features = ["nix-command" "flakes"];
@@ -781,8 +788,8 @@
               ++ (with pkgs; [
                 xorg.xev
                 xorg.xprop
-                (pkgs.writeShellScriptBin "list-git-vars" "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe pkgs.git} var -l | sort)")
                 (pkgs.writeShellScriptBin "system-rebuild" "nixos-rebuild --flake '${prefs.repo.path}#${prefs.host.name}' $@")
+                (pkgs.writeShellScriptBin "system-edit" "$EDITOR $@ '${prefs.repo.path}/flake.nix'")
                 (pkgs.writeShellApplication {
                   name = "system-repl";
                   runtimeInputs = with pkgs; [gum nix];
@@ -799,6 +806,7 @@
                       }
                     '';
                   in ''
+                    FOREGROUND=4 gum style "starting system-repl on ${hostName}"
                     exec nix repl ${entrypoint}
                   '';
                 })
@@ -854,4 +862,5 @@
         ];
     };
   };
+  # vim:sts=2:et:ft=nix:fdm=indent:fdl=0:fcl=all:fdo=all
 }

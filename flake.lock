@@ -12,6 +12,7 @@
       },
       "original": {
         "owner": "astronvim",
+        "ref": "v2.4.2",
         "repo": "astronvim",
         "type": "github"
       }
@@ -99,17 +100,17 @@
     "dotfiles": {
       "flake": false,
       "locked": {
-        "lastModified": 1664410299,
-        "narHash": "sha256-DYneU0fzHNcnX25VS8Lys7utMyxUb/7TZR584ToRoyw=",
-        "owner": "jakelogemann",
-        "repo": ".config",
-        "rev": "0442d5bade86180068c2e102f1b9fff8ac80a22f",
-        "type": "github"
+        "lastModified": 1661979604,
+        "narHash": "sha256-vnwOwX4T0vSOJwX4qwFcXm8FEKNjWSBxqCkHSlXwgyk=",
+        "ref": "refs/heads/main",
+        "rev": "8a0648de0cc269e0436bd17efd6ae5829d937d64",
+        "revCount": 12,
+        "type": "git",
+        "url": "https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git"
       },
       "original": {
-        "owner": "jakelogemann",
-        "repo": ".config",
-        "type": "github"
+        "type": "git",
+        "url": "https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git"
       }
     },
     "flake-utils": {
