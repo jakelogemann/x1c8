@@ -20,6 +20,13 @@
       flake = false;
     };
 
+    AstroNvim = {
+      type = "github";
+      owner = "astronvim";
+      repo = "astronvim";
+      flake = false;
+    };
+
     cthulhu = {
       type = "github";
       host = "github.internal.digitalocean.com";
@@ -56,182 +63,354 @@
     nixpkgs,
     ...
   }: let
+    /*
+    preferences are loaded from a TOML file located in this directory. the data
+    in here is free-form and should be kept as minimalist as possible.
+    */
     prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
   in {
+    # a few values are inherited directly from another project i maintain.
     inherit (self.inputs.fnctl) lib formatter devShells;
 
-    overlays.default = (final: prev: with prev; rec {
-      do-nixpkgs = self.inputs.do-nixpkgs.packages.${system} // {
-          dao = callPackage ./pkg/dao.nix {};
-          ghe = pkgs.writeShellApplication {
-            name = "ghe";
-            runtimeInputs = with pkgs; [gh];
-            text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
+    /*
+    while its possible to have several overlays, i tend to keep only a single one like this..
+    i think its a bit stylistic.
+    */
+    overlays.default = final: prev:
+      with prev; rec {
+        do-nixpkgs =
+          self.inputs.do-nixpkgs.packages.${system}
+          // {
+            dao = callPackage ./pkg/dao.nix {};
+            ghe = pkgs.writeShellApplication {
+              name = "ghe";
+              runtimeInputs = with pkgs; [gh];
+              text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
+            };
+            vault = pkgs.writeShellApplication {
+              name = "vault";
+              runtimeInputs = with pkgs; [vault];
+              text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
+            };
           };
-          vault = pkgs.writeShellApplication {
-            name = "vault";
-            runtimeInputs = with pkgs; [vault];
-            text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-          };
-        };
-      });
+      };
 
-    nixosConfigurations.laptop = nixpkgs.lib.nixosSystem rec {
-      system = "${prefs.host.arch}-${prefs.host.os}";
-      specialArgs = {inherit self nixpkgs prefs system;};
-      modules = [
-        ({
-          config,
-          lib,
-          pkgs,
-          ...
-        }:
-          with builtins;
-          with lib;
-          with specialArgs; {
-            imports = [
-              self.inputs.do-nixpkgs.nixosModules.kolide-launcher
-              self.inputs.do-nixpkgs.nixosModules.sentinelone
-              self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
+    /*
+    do-internal represents "internal" digitalocean configuration.
+    beyond that... I haven't decided what this module does yet..
+    */
+    nixosModules.do-internal = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      imports = [
+        self.inputs.do-nixpkgs.nixosModules.kolide-launcher
+        self.inputs.do-nixpkgs.nixosModules.sentinelone
+      ];
+      services.sentinelone.enable = true;
+      services.kolide-launcher.enable = true;
+      services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
+      system.nixos.tags = ["digitalocean"];
+      environment.systemPackages = with pkgs; [
+        (pkgs.symlinkJoin {
+          name = "do-nixpkgs-bundle";
+          paths =
+            (builtins.map (p: pkgs.do-nixpkgs."${p}") prefs.packages.internal)
+            ++ [
+              (pkgs.writeShellScriptBin "do-nixpkgs-bundle" "dirname $(dirname $(readlink $(which docc)))")
+              (pkgs.writeShellScriptBin "do-nixpkgs-bundle-tree" "tree $\{@:--lnQhx} $(do-nixpkgs-bundle)")
+              (pkgs.writeShellScriptBin "do-nixpkgs-bundle-pager" "tree $\{@:--lnQhx} $(do-nixpkgs-bundle) | ${lib.getExe pkgs.bat} --file-name=$0 --plain")
+              (pkgs.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+              (pkgs.writeShellApplication {
+                name = "vpn";
+                runtimeInputs = with pkgs; [openconnect];
+                text = ''
+                  set -x; exec ${lib.getExe pkgs.openconnect} \
+                    --passwd-on-stdin --background --protocol=gp -F _challenge:passwd=1 \
+                    --csd-wrapper=${pkgs.openconnect}/libexec/openconnect/hipreport.sh \
+                    -F _login:user="$1" \
+                    "https://vpn-$2.digitalocean.com/ssl-vpn"
+                '';
+              })
+              (pkgs.writeShellApplication {
+                name = "ghe";
+                runtimeInputs = with pkgs; [gh];
+                text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
+              })
+              (pkgs.writeShellApplication {
+                name = "vault";
+                runtimeInputs = with pkgs; [vault];
+                text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
+              })
             ];
-            boot = {
-              binfmt.emulatedSystems = ["aarch64-linux"];
-              enableContainers = true;
-              extraModprobeConfig = "options kvm_intel nested=1";
-              # kernel.sysctl."kernel.modules_disabled" = 1;
-              initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
-              initrd.kernelModules = ["dm-snapshot" "br_netfilter"];
-              initrd.luks.devices.root.allowDiscards = true;
-              initrd.luks.devices.root.device = "/dev/disk/by-uuid/c680bcae-9d30-4845-825c-225666887138";
-              initrd.luks.devices.root.preLVM = true;
-              loader.grub.configurationLimit = 10;
-              kernel.sysctl."kernel.dmesg_restrict" = 1;
-              kernel.sysctl."kernel.kptr_restrict" = 2;
-              kernel.sysctl."kernel.perf_event_paranoid" = 3;
-              kernel.sysctl."kernel.randomize_va_space" = 2;
-              kernel.sysctl."kernel.sysrq" = 0;
-              kernel.sysctl."kernel.unprivileged_bpf_disabled" = 1;
-              kernel.sysctl."net.core.bpf_jit_harden" = 2;
-              kernel.sysctl."net.ipv4.conf.all.accept_redirects" = 1;
-              kernel.sysctl."net.ipv4.conf.all.log_martians" = 1;
-              kernel.sysctl."net.ipv4.conf.all.proxy_arp" = 0;
-              kernel.sysctl."net.ipv4.conf.all.rp_filter" = 1;
-              kernel.sysctl."net.ipv4.conf.all.send_redirects" = 0;
-              kernel.sysctl."net.ipv4.conf.default.accept_redirects" = 0;
-              kernel.sysctl."net.ipv6.conf.all.accept_redirects" = 0;
-              kernel.sysctl."vm.swappiness" = 1;
-              kernel.sysctl."net.ipv6.conf.default.accept_redirects" = 0;
-              kernelParams = ["acpi_osi=\"Linux\"" "i8042.reset=1" "i8042.nomux=1"];
-              kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
-              loader.systemd-boot.enable = true;
-              supportedFilesystems = lib.mkForce ["btrfs" "vfat"];
-              kernelModules = [
-                "xhci_pci"
-                "acpi_call"
-                "btusb"
-                "iwlmvm"
-                "kvm-intel"
-                "br_netfilter"
-                "mei_me"
-                "ext2"
-                "sd_mod"
-                "drm"
-                "i915"
-                "tpm_tis"
-                "snd_hda_intel"
-              ];
-            };
+        })
+      ];
+    };
 
-            users.users.${prefs.user.login} = {
-              extraGroups = ["users" "wheel" "systemd-journal" "networkmanager" prefs.user.login];
-              group = prefs.user.login;
-              initialPassword = "";
-              home = "/home/${prefs.user.login}";
-              shell = pkgs.zsh;
-              uid = 1000;
-              isNormalUser = true;
-            };
-            programs.neovim = {
-              enable = true;
-              vimAlias = true;
-              defaultEditor = true;
-              viAlias = true;
-              configure.packages.default.start = with pkgs.vimPlugins; [
-                vim-lastplace
-                telescope-nvim
-                nvim-lspconfig
-                vim-nix
-                nvim-web-devicons
-                i3config-vim
-                vim-easy-align
-                vim-gnupg
-                vim-cue
-                vim-go
-                vim-hcl
-                (nvim-treesitter.withPlugins (p:
-                  builtins.map (n: p."tree-sitter-${n}") [
-                    "bash"
-                    "c"
-                    "comment"
-                    "cpp"
-                    "css"
-                    "go"
-                    "html"
-                    "json"
-                    "lua"
-                    "make"
-                    "markdown"
-                    "nix"
-                    "python"
-                    "ruby"
-                    "rust"
-                    "toml"
-                    "vim"
-                    "yaml"
-                  ]))
-                onedarkpro-nvim
-              ];
+    /*
+    lenovo-x1c8 contains the configuration that is specific to my Lenovo
+    X1 Carbon (8th gen), but generic enough to perhaps reuse.
+    */
+    nixosModules.lenovo-x1c8 = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      system.nixos.tags = ["x1c8"];
+      boot.initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
+      imports = [
+        self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
+      ];
+    };
 
-              configure.customRC = ''
-                colorscheme onedarkpro
-                set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
-                set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
-                set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
-                set backspace=indent,eol,start background=dark
-                let mapleader=' '
+    /*
+    this contains ... well.. me. or ... "you"... perhaps, "us"?
+    */
+    nixosModules.${prefs.user.login} = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      users.users.${prefs.user.login} = {
+        extraGroups = ["users" prefs.user.login];
+        group = prefs.user.login;
+        initialPassword = "";
+        home = "/home/${prefs.user.login}";
+        shell = pkgs.zsh;
+        uid = 1000;
+        isNormalUser = true;
+      };
+      users.groups.${prefs.user.login}.gid = 990;
+      system.nixos.tags = [prefs.user.login];
+    };
 
-                if has("user_commands")
-                command! -bang -nargs=? -complete=file E e<bang> <args>
-                command! -bang -nargs=? -complete=file W w<bang> <args>
-                command! -bang -nargs=? -complete=file Wq wq<bang> <args>
-                command! -bang -nargs=? -complete=file WQ wq<bang> <args>
-                command! -bang Wa wa<bang>
-                command! -bang WA wa<bang>
-                command! -bang Q q<bang>
-                command! -bang QA qa<bang>
-                command! -bang Qa qa<bang>
-                endif
+    /*
+    shellz wraps ZSH with my current configuration.
+    */
+    nixosModules.shellz = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      programs.zsh = {
+        autosuggestions.enable = true;
+        autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
+        autosuggestions.highlightStyle = "fg=cyan";
+        autosuggestions.strategy = ["completion"];
+        enable = true;
+        # enableBashCompletion = true;
+        enableCompletion = true;
+        # enableGlobalCompInit = true;
+        histFile = "$HOME/.zsh_history";
+        histSize = 100000;
+        syntaxHighlighting.enable = true;
+        syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
+        syntaxHighlighting.styles.alias = "fg=magenta,bold";
+        # vteIntegration = true;
+        setOptions = [
+          "AUTO_CD"
+          "AUTO_PUSHD"
+          "HIST_IGNORE_DUPS"
+          "SHARE_HISTORY"
+          "HIST_FCNTL_LOCK"
+          "EXTENDED_HISTORY"
+          "RM_STAR_WAIT"
+          "CD_SILENT"
+          "CHASE_DOTS"
+          "CHASE_LINKS"
+          "PUSHD_IGNORE_DUPS"
+          "PUSHD_MINUS"
+          "PUSHD_SILENT"
+          "PUSHD_TO_HOME"
+          "COMPLETE_ALIASES"
+          "EXTENDED_HISTORY"
+          "BASH_AUTO_LIST"
+          "INC_APPEND_HISTORY"
+          "INTERACTIVE_COMMENTS"
+          "MENU_COMPLETE"
+          "HIST_SAVE_NO_DUPS"
+          "HIST_IGNORE_SPACE"
+          "HIST_EXPIRE_DUPS_FIRST"
+        ];
+        interactiveShellInit = ''
+          eval "$(${lib.getExe pkgs.direnv} hook zsh)"
+          source "${pkgs.skim}/share/skim/completion.zsh"
+          source "${pkgs.skim}/share/skim/key-bindings.zsh"
+          eval "$(${lib.getExe pkgs.navi} widget zsh)"
+          eval "$(${lib.getExe pkgs.starship} init zsh)"
+          eval "$(${lib.getExe pkgs.zoxide} init zsh)"
+          eval "$(${lib.getExe pkgs.do-nixpkgs.docc} completion zsh)"
+          zstyle ':vcs_info:*' enable git cvs svn hg
+          hash -d current-sw=/run/current-system/sw
+          hash -d booted-sw=/run/booted-system/sw
+          autoload -U edit-command-line && zle -N edit-command-line && bindkey '\C-x\C-e' edit-command-line
+          bindkey '\C-k' up-line-or-history
+          bindkey '\C-j' down-line-or-history
+          bindkey '\C-h' backward-word
+          bindkey '\C-l' forward-word
 
-                function! NumberToggle()
-                if(&relativenumber == 1) set nu nornu
-                else set nonu rnu
-                endif
-                endfunc
+        '';
+      };
+    };
 
-                nnoremap <leader>r :call NumberToggle()<cr>
-                nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
-                nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
-                nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
-                nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
-                nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
-                nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
-                nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
-                nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
-                nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
-                nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
+    /*
+    nvim wraps neovim with my current configuration.
+    */
+    nixosModules.nvim = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      programs.neovim = {
+        enable = true;
+        vimAlias = true;
+        defaultEditor = true;
+        viAlias = true;
+        configure.packages.default.start = with pkgs.vimPlugins; [
+          vim-lastplace
+          telescope-nvim
+          nvim-lspconfig
+          vim-nix
+          nvim-web-devicons
+          i3config-vim
+          vim-easy-align
+          vim-gnupg
+          vim-cue
+          vim-go
+          vim-hcl
+          (nvim-treesitter.withPlugins (p:
+            builtins.map (n: p."tree-sitter-${n}") [
+              "bash"
+              "c"
+              "comment"
+              "cpp"
+              "css"
+              "go"
+              "html"
+              "json"
+              "lua"
+              "make"
+              "markdown"
+              "nix"
+              "python"
+              "ruby"
+              "rust"
+              "toml"
+              "vim"
+              "yaml"
+            ]))
+          onedarkpro-nvim
+        ];
 
-              '';
-            };
+        configure.customRC = ''
+          colorscheme onedarkpro
+          set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
+          set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
+          set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
+          set backspace=indent,eol,start background=dark
+          let mapleader=' '
+
+          if has("user_commands")
+          command! -bang -nargs=? -complete=file E e<bang> <args>
+          command! -bang -nargs=? -complete=file W w<bang> <args>
+          command! -bang -nargs=? -complete=file Wq wq<bang> <args>
+          command! -bang -nargs=? -complete=file WQ wq<bang> <args>
+          command! -bang Wa wa<bang>
+          command! -bang WA wa<bang>
+          command! -bang Q q<bang>
+          command! -bang QA qa<bang>
+          command! -bang Qa qa<bang>
+          endif
+
+          function! NumberToggle()
+          if(&relativenumber == 1) set nu nornu
+          else set nonu rnu
+          endif
+          endfunc
+
+          nnoremap <leader>r :call NumberToggle()<cr>
+          nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
+          nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
+          nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
+          nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
+          nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
+          nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
+          nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
+          nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
+          nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
+          nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
+
+        '';
+      };
+    };
+
+    /*
+    this is a specific host's configuration (my laptop, to be specific).
+    you probably don't actually want to use this... but feel free to have a
+    bowl of copy+pasta :)
+    */
+    nixosConfigurations.laptop = nixpkgs.lib.nixosSystem rec {
+      system = "x86_64-linux";
+      specialArgs = {inherit self nixpkgs prefs system;};
+      modules =
+        (builtins.attrValues self.nixosModules)
+        ++ [
+          ({
+            config,
+            lib,
+            pkgs,
+            ...
+          }: {
+            boot.binfmt.emulatedSystems = ["aarch64-linux"];
+            boot.enableContainers = true;
+            boot.extraModprobeConfig = "options kvm_intel nested=1";
+            #boot.kernel.sysctl."kernel.modules_disabled" = 1;
+            boot.initrd.kernelModules = ["dm-snapshot" "br_netfilter"];
+            boot.initrd.luks.devices.root.allowDiscards = true;
+            boot.initrd.luks.devices.root.device = "/dev/disk/by-uuid/c680bcae-9d30-4845-825c-225666887138";
+            boot.initrd.luks.devices.root.preLVM = true;
+            boot.loader.grub.configurationLimit = 10;
+            boot.kernel.sysctl."kernel.dmesg_restrict" = 1;
+            boot.kernel.sysctl."kernel.kptr_restrict" = 2;
+            boot.kernel.sysctl."kernel.perf_event_paranoid" = 3;
+            boot.kernel.sysctl."kernel.randomize_va_space" = 2;
+            boot.kernel.sysctl."kernel.sysrq" = 0;
+            boot.kernel.sysctl."kernel.unprivileged_bpf_disabled" = 1;
+            boot.kernel.sysctl."net.core.bpf_jit_harden" = 2;
+            boot.kernel.sysctl."net.ipv4.conf.all.accept_redirects" = 1;
+            boot.kernel.sysctl."net.ipv4.conf.all.log_martians" = 1;
+            boot.kernel.sysctl."net.ipv4.conf.all.proxy_arp" = 0;
+            boot.kernel.sysctl."net.ipv4.conf.all.rp_filter" = 1;
+            boot.kernel.sysctl."net.ipv4.conf.all.send_redirects" = 0;
+            boot.kernel.sysctl."net.ipv4.conf.default.accept_redirects" = 0;
+            boot.kernel.sysctl."net.ipv6.conf.all.accept_redirects" = 0;
+            boot.kernel.sysctl."vm.swappiness" = 1;
+            boot.kernel.sysctl."net.ipv6.conf.default.accept_redirects" = 0;
+            boot.kernelParams = ["acpi_osi=\"Linux\"" "i8042.reset=1" "i8042.nomux=1"];
+            boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
+            boot.loader.systemd-boot.enable = true;
+            boot.supportedFilesystems = lib.mkForce ["btrfs" "vfat"];
+            boot.kernelModules = [
+              "acpi_call"
+              "br_netfilter"
+              "btusb"
+              "drm"
+              "ext2"
+              "i915"
+              "iwlmvm"
+              "kvm-intel"
+              "mei_me"
+              "sd_mod"
+              "snd_hda_intel"
+              "tpm_tis"
+              "xhci_pci"
+            ];
 
             # programs.ssh.ciphers = [ "chacha20-poly1305@openssh.com" "aes256-gcm@openssh.com" ];
             # programs.ssh.kexAlgorithms = ["curve25519-sha256@libssh.org" "diffie-hellman-group-exchange-sha256"];
@@ -280,7 +459,7 @@
             hardware.opengl.enable = true;
             hardware.opengl.extraPackages = with pkgs; [intel-compute-runtime];
             hardware.pulseaudio.enable = true;
-            networking.dhcpcd.extraConfig = mkForce "nohook resolv.conf";
+            networking.dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
             networking.domain = "local";
             networking.enableIPv6 = true;
             networking.firewall.allowPing = true;
@@ -297,12 +476,12 @@
             networking.hostName = prefs.host.name;
             networking.interfaces.enp45s0u1u3u2c2.useDHCP = true;
             networking.interfaces.enp45s0u2u3.useDHCP = true;
-            networking.nameservers = mkForce ["127.0.0.1" "::1"];
-            networking.networkmanager.dns = mkForce "none";
+            networking.nameservers = lib.mkForce ["127.0.0.1" "::1"];
+            networking.networkmanager.dns = lib.mkForce "none";
             networking.networkmanager.enable = true;
             networking.networkmanager.plugins = with pkgs; [networkmanager-openconnect];
             networking.networkmanager.wifi.powersave = true;
-            networking.resolvconf.enable = mkForce false;
+            networking.resolvconf.enable = lib.mkForce false;
             networking.useDHCP = false;
             networking.useHostResolvConf = true;
             networking.wireless.enable = false;
@@ -335,6 +514,7 @@
             programs.git.config.alias.l = "log --pretty=oneline --graph --abbrev-commit";
             programs.git.config.alias.quick-rebase = "rebase --interactive --root --autosquash --autostash";
             programs.git.config.alias.remotes = "remote --verbose";
+            programs.git.config.alias.list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
             programs.git.config.alias.user = "config --show-scope --get-regexp user";
             programs.git.config.alias.wtf-config = "config --show-scope --show-origin --list --includes";
             programs.git.config.apply.whitespace = "fix";
@@ -354,7 +534,7 @@
             programs.git.config.push.default = "simple";
             programs.git.config.push.followtags = true;
             programs.git.enable = true;
-            programs.git.lfs.enable = mkDefault true;
+            programs.git.lfs.enable = lib.mkDefault true;
             programs.gnupg.agent.enable = true;
             programs.gnupg.agent.enableBrowserSocket = true;
             programs.gnupg.agent.enableSSHSupport = true;
@@ -396,11 +576,10 @@
             services.journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
             services.journald.forwardToSyslog = false;
             hardware.uinput.enable = true;
-            services.kolide-launcher.enable = true;
-            services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
-            services.sentinelone.enable = true;
             services.tlp.enable = true;
             services.upower.enable = true;
+            services.emacs.enable = false;
+            services.emacs.install = false;
             services.xserver.autorun = true;
             services.xserver.displayManager.autoLogin.enable = true;
             services.xserver.displayManager.autoLogin.user = prefs.user.login;
@@ -416,8 +595,6 @@
             sound.enable = true;
             sound.mediaKeys.enable = true;
             swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
-            system.nixos.tags = ["digitalocean"];
-            users.groups.${prefs.user.login}.gid = 990;
             users.groups.users = {};
             users.groups.wheel = {};
             virtualisation.oci-containers.backend = "podman";
@@ -425,64 +602,8 @@
             virtualisation.podman.dockerSocket.enable = true;
             virtualisation.podman.enable = true;
 
-            programs.zsh = { 
-              autosuggestions.enable = true;
-              autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
-              autosuggestions.highlightStyle = "fg=cyan";
-              autosuggestions.strategy = ["completion"];
-              enable = true;
-              # enableBashCompletion = true;
-              enableCompletion = true;
-              # enableGlobalCompInit = true;
-              histFile = "$HOME/.zsh_history";
-              histSize = 100000;
-              syntaxHighlighting.enable = true;
-              syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
-              syntaxHighlighting.styles.alias = "fg=magenta,bold";
-              # vteIntegration = true;
-              setOptions = [
-                "AUTO_CD"
-                "AUTO_PUSHD"
-                "HIST_IGNORE_DUPS"
-                "SHARE_HISTORY"
-                "HIST_FCNTL_LOCK"
-                "EXTENDED_HISTORY"
-                "RM_STAR_WAIT"
-                "CD_SILENT"
-                "CHASE_DOTS"
-                "CHASE_LINKS"
-                "PUSHD_IGNORE_DUPS"
-                "PUSHD_MINUS"
-                "PUSHD_SILENT"
-                "PUSHD_TO_HOME"
-                "COMPLETE_ALIASES"
-                "EXTENDED_HISTORY"
-                "BASH_AUTO_LIST"
-                "INC_APPEND_HISTORY"
-                "INTERACTIVE_COMMENTS"
-                "MENU_COMPLETE"
-                "HIST_SAVE_NO_DUPS"
-                "HIST_IGNORE_SPACE"
-                "HIST_EXPIRE_DUPS_FIRST"
-              ];
-              interactiveShellInit = ''
-                eval "$(${lib.getExe pkgs.direnv} hook zsh)"
-                source "${pkgs.skim}/share/skim/completion.zsh"
-                source "${pkgs.skim}/share/skim/key-bindings.zsh"
-                eval "$(${lib.getExe pkgs.navi} widget zsh)"
-                eval "$(${getExe pkgs.starship} init zsh)"
-                eval "$(${lib.getExe pkgs.zoxide} init zsh)"
-                eval "$(${lib.getExe pkgs.do-nixpkgs.docc} completion zsh)"
-                zstyle ':vcs_info:*' enable git cvs svn hg
-                hash -d current-sw=/run/current-system/sw
-                hash -d booted-sw=/run/booted-system/sw
-                autoload -U edit-command-line && zle -N edit-command-line && bindkey '\C-x\C-e' edit-command-line
-                bindkey '\C-k' up-line-or-history
-                bindkey '\C-j' down-line-or-history
-                bindkey '\C-h' backward-word
-                bindkey '\C-l' forward-word
-
-              '';
+            systemd = {
+              services.dnscrypt-proxy2.serviceConfig.StateDirectory = lib.mkForce "dnscrypt-proxy2";
             };
 
             security.pam.u2f = {
@@ -525,7 +646,7 @@
             };
 
             services.dnscrypt-proxy2 = {
-              enable = mkForce true;
+              enable = lib.mkForce true;
               settings = {
                 # Immediately respond to A and AAAA queries for host names without a
                 # domain name.
@@ -580,6 +701,8 @@
                   iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
                 in
                   pkgs.writeText "forwarding_rules" ''
+                    do.co ${iDNS}
+                    *.do.co ${iDNS}
                     internal.digitalocean.com ${iDNS}
                     *.internal.digitalocean.com ${iDNS}
                     10.in.arpa ${iDNS}
@@ -645,8 +768,6 @@
               };
             };
 
-            systemd.services.dnscrypt-proxy2.serviceConfig.StateDirectory = mkForce "dnscrypt-proxy2";
-
             boot.extraModulePackages = with pkgs; [
               linuxPackages_latest.acpi_call
               linuxPackages_latest.cpupower
@@ -657,46 +778,15 @@
 
             environment.systemPackages =
               (builtins.map (p: pkgs."${p}") prefs.packages.global)
-              ++ lib.optionals (builtins.hasAttr "do-nixpkgs" pkgs) [
-                (pkgs.symlinkJoin {
-                  name = "do-nixpkgs-bundle";
-                  paths = (builtins.map (p: pkgs.do-nixpkgs."${p}") prefs.packages.internal)
-                  ++ [
-                      (pkgs.writeShellScriptBin "do-nixpkgs-bundle" "dirname $(dirname $(readlink $(which docc)))")
-                      (pkgs.writeShellScriptBin "do-nixpkgs-bundle-tree" "tree $\{@:--lnQhx} $(do-nixpkgs-bundle)")
-                      (pkgs.writeShellScriptBin "do-nixpkgs-bundle-pager" "tree $\{@:--lnQhx} $(do-nixpkgs-bundle) | ${lib.getExe pkgs.bat} --file-name=$0 --plain")
-                      (pkgs.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-                      (pkgs.writeShellApplication {
-                        name = "vpn";
-                        runtimeInputs = with pkgs; [openconnect];
-                        text = ''
-                          set -x; exec ${lib.getExe pkgs.openconnect} \
-                            --passwd-on-stdin --background --protocol=gp -F _challenge:passwd=1 \
-                            --csd-wrapper=${pkgs.openconnect}/libexec/openconnect/hipreport.sh \
-                            -F _login:user="$1" \
-                            "https://vpn-$2.digitalocean.com/ssl-vpn"
-                        '';
-                      })
-                      (pkgs.writeShellApplication {
-                        name = "ghe";
-                        runtimeInputs = with pkgs; [gh];
-                        text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-                      })
-                      (pkgs.writeShellApplication {
-                        name = "vault";
-                        runtimeInputs = with pkgs; [vault];
-                        text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-                      })
-                    ];
-                })
-              ]
               ++ (with pkgs; [
+                xorg.xev
+                xorg.xprop
                 (pkgs.writeShellScriptBin "list-git-vars" "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(${lib.getExe pkgs.git} var -l | sort)")
                 (pkgs.writeShellScriptBin "system-rebuild" "nixos-rebuild --flake '${prefs.repo.path}#${prefs.host.name}' $@")
                 (pkgs.writeShellApplication {
                   name = "system-repl";
                   runtimeInputs = with pkgs; [gum nix];
-                  text = let 
+                  text = let
                     hostName = prefs.host.name;
                     entrypoint = pkgs.writeText "entrypoint.nix" ''
                       rec {
@@ -722,7 +812,7 @@
                     "--config-file='${writeText "alacritty.yml" (builtins.toJSON rec {
                       cursor.style.blinking = "On";
                       cursor.style.shape = "block";
-                      env.TERM = "alacritty";
+                      env.TERM = "xterm-new";
                       font.builtin_box_drawing = false;
                       font.glyph_offset.x = -1;
                       font.glyph_offset.y = -1;
@@ -751,18 +841,6 @@
                     "\"$@\""
                   ];
                 })
-
-                arandr
-                scrot
-                firefox
-                flameshot
-                xbindkeys
-                xclip
-                xdotool
-                xorg.xev
-                xorg.xprop
-                wireshark
-                _1password-gui
               ]);
 
             # This value determines the NixOS release from which the default
@@ -773,7 +851,7 @@
             # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html)
             system.stateVersion = lib.mkForce "22.05";
           })
-      ];
+        ];
     };
   };
 }

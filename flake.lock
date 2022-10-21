@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "AstroNvim": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1666289306,
+        "narHash": "sha256-rw29hZKFklXdeA3viyYuHH92aaTmmuzdmrM/EbsFpSQ=",
+        "owner": "astronvim",
+        "repo": "astronvim",
+        "rev": "5288bad46858f15f2290aeb3d09c8bd8e58b7882",
+        "type": "github"
+      },
+      "original": {
+        "owner": "astronvim",
+        "repo": "astronvim",
+        "type": "github"
+      }
+    },
     "cicd": {
       "flake": false,
       "locked": {
@@ -22,11 +38,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1666193963,
-        "narHash": "sha256-Mh1WwzpYgviLWouwmne0nusOt/R8OWMQvsuPjSTNd3E=",
+        "lastModified": 1666303750,
+        "narHash": "sha256-XxQCY9Zg6u8PL+1SOpwg/wc8mrrVRFZFlCxgZS38QPw=",
         "owner": "digitalocean",
         "repo": "cthulhu",
-        "rev": "b7c36992db3ec478902611125a54a193fdd2def8",
+        "rev": "3a2f59ae938f20bdab4c95bfa96279bb6b505e0b",
         "type": "github"
       },
       "original": {
@@ -185,11 +201,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1666080735,
-        "narHash": "sha256-4YWYJgzt9mGuAvXAuEziYms+bYlk/1spyt3iLizRL5I=",
+        "lastModified": 1666253070,
+        "narHash": "sha256-MtaNgghmfp+ywh5mv9FcspFT4ACaYINSN+D98PCkrP0=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "42f81ac107c5a9a177888080107094dba57f134e",
+        "rev": "c485669ca529e01c1505429fa9017c9a93f15559",
         "type": "github"
       },
       "original": {
@@ -245,11 +261,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1666109165,
-        "narHash": "sha256-BMLyNVkr0oONuq3lKlFCRVuYqF75CO68Z8EoCh81Zdk=",
+        "lastModified": 1666198336,
+        "narHash": "sha256-VTrWD8Bb48h2pi57P1++LuvZIgum3gSLiRzZ/8q3rg0=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "32096899af23d49010bd8cf6a91695888d9d9e73",
+        "rev": "db25c4da285c5989b39e4ce13dea651a88b7a9d4",
         "type": "github"
       },
       "original": {
@@ -277,11 +293,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1666109165,
-        "narHash": "sha256-BMLyNVkr0oONuq3lKlFCRVuYqF75CO68Z8EoCh81Zdk=",
+        "lastModified": 1666198336,
+        "narHash": "sha256-VTrWD8Bb48h2pi57P1++LuvZIgum3gSLiRzZ/8q3rg0=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "32096899af23d49010bd8cf6a91695888d9d9e73",
+        "rev": "db25c4da285c5989b39e4ce13dea651a88b7a9d4",
         "type": "github"
       },
       "original": {
@@ -317,6 +333,7 @@
     },
     "root": {
       "inputs": {
+        "AstroNvim": "AstroNvim",
         "cicd": "cicd",
         "cthulhu": "cthulhu",
         "dao": "dao",
