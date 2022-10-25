@@ -29,11 +29,6 @@
       flake = false;
     };
 
-    dotfiles = {
-      url = "git+https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git";
-      flake = false;
-    };
-
     AstroNvim = {
       type = "github";
       owner = "astronvim";
@@ -219,44 +214,15 @@
           syntaxHighlighting.enable = true;
           syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
           syntaxHighlighting.styles.alias = "fg=magenta,bold";
-          # vteIntegration = true;
-          setOptions = [
-            "AUTO_CD"
-            "AUTO_PUSHD"
-            "HIST_IGNORE_DUPS"
-            "SHARE_HISTORY"
-            "HIST_FCNTL_LOCK"
-            "EXTENDED_HISTORY"
-            "RM_STAR_WAIT"
-            "CD_SILENT"
-            "CHASE_DOTS"
-            "CHASE_LINKS"
-            "PUSHD_IGNORE_DUPS"
-            "PUSHD_MINUS"
-            "PUSHD_SILENT"
-            "PUSHD_TO_HOME"
-            "COMPLETE_ALIASES"
-            "EXTENDED_HISTORY"
-            "BASH_AUTO_LIST"
-            "INC_APPEND_HISTORY"
-            "INTERACTIVE_COMMENTS"
-            "MENU_COMPLETE"
-            "HIST_SAVE_NO_DUPS"
-            "HIST_IGNORE_SPACE"
-            "HIST_EXPIRE_DUPS_FIRST"
-          ];
           interactiveShellInit = ''
-            eval "$(${lib.getExe pkgs.direnv} hook zsh)"
-            zstyle ':vcs_info:*' enable git cvs svn hg
+            source "${./pkg/zshrc}"
             hash -d current-sw=/run/current-system/sw
             hash -d booted-sw=/run/booted-system/sw
-            source "${./pkg/zshrc}"
-            source "${pkgs.skim}/share/skim/completion.zsh"
-            source "${pkgs.skim}/share/skim/key-bindings.zsh"
+            eval "$(${lib.getExe pkgs.direnv} hook zsh)"
             eval "$(${lib.getExe pkgs.navi} widget zsh)"
             eval "$(${lib.getExe pkgs.starship} init zsh)"
             eval "$(${lib.getExe pkgs.zoxide} init zsh)"
-            eval "$(${lib.getExe pkgs.do-nixpkgs.docc} completion zsh)"
+            source "${pkgs.skim}/share/skim/key-bindings.zsh"
           '';
         };
       };
@@ -353,6 +319,8 @@
             nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
             nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
 
+            command! -nargs=* SystemSwitch silent !sudo system switch<cr>
+            command! -nargs=* System silent! !system <q-args><cr>
             command! -nargs=0 NixFmt silent! !nix run nixpkgs\#alejandra -- -q %:p<cr>
           '';
         };
@@ -472,6 +440,7 @@
               environment.shellAliases.find-broken-symlinks = "find -L . -type l 2>/dev/null";
               environment.shellAliases.rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
               environment.variables.EDITOR = "nvim";
+              environment.variables.BAT_STYLE = "header-filename,grid";
               environment.variables.BROWSER = "firefox";
               environment.variables.PAGER = lib.getExe pkgs.bat;
               fileSystems."/".device = "/dev/disk/by-uuid/45264d57-59a7-428b-a85a-35fa35c1ddeb";
@@ -503,6 +472,7 @@
               networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
               networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
               networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
+              networking.hosts."10.38.5.231" = ["servicecatalog-staging.internal.digitalocean.com"];
               networking.firewall.allowPing = true;
               networking.firewall.allowedTCPPorts = [];
               networking.firewall.allowedUDPPorts = [];
@@ -594,10 +564,16 @@
               programs.starship.settings.add_newline = false;
               # programs.starship.settings.character.continuation_prompt = "[▶▶](dim cyan)";
               programs.starship.settings.character.error_symbol = "[➜](bold red)";
+              programs.starship.settings.golang.symbol = "";
               programs.starship.settings.character.success_symbol = "[➜](bold green)";
               programs.starship.settings.character.vicmd_symbol = "[](bold magenta)";
-              programs.starship.settings.format = "$character";
+              programs.starship.settings.format = "$directory $character";
               programs.starship.settings.right_format = "$all";
+              programs.starship.settings.git_status.disabled = true;
+              programs.starship.settings.directory.truncate_to_repo = false;
+              programs.starship.settings.git_branch.disabled = true;
+              programs.starship.settings.shlvl.disabled = false;
+              programs.starship.settings.time.disabled = false;
               programs.starship.settings.scan_timeout = 10;
               programs.tmux.aggressiveResize = true;
               programs.tmux.baseIndex = 1;
@@ -619,6 +595,10 @@
               services.unclutter.enable = true;
               services.earlyoom.enable = true;
               services.earlyoom.freeMemThreshold = 10;
+              xdg.mime.enable = true;
+              xdg.mime.defaultApplications."application/pdf" = "firefox.desktop";
+              xdg.mime.removedAssociations."audio/mp3" = [ "mpv.desktop" "umpv.desktop" ];
+              xdg.mime.removedAssociations."inode/directory" = "codium.desktop";
               # services.earlyoom.freeSwapThreshold = 10;
               services.fwupd.enable = true;
               services.journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
@@ -838,9 +818,9 @@
                         bin) echo "/run/current-system/sw/bin";;
                         bins) lsd --no-symlink "$($0 bin)";;
                         boot|build|build-vm*|dry-activate|dry-build|test|switch) nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-                        edit|editor) [[ $UID -ne 0 ]] && $EDITOR flake.nix;;
+                        edit) [[ $UID -ne 0 ]] && $EDITOR flake.nix;;
                         flake) [[ $UID -ne 0 ]] && nix "$@";;
-                        git) [[ $UID -ne 0 ]] && git "$@";;
+                        git) [[ $UID -ne 0 ]] && exec "$@";;
                         help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
                         pager) $0 tree | bat --file-name="$0 $*" --plain;;
                         repo|path|dir) pwd;;
@@ -921,9 +901,9 @@
                       cmd+=( -F _challenge:passwd=1 )
                       cmd+=( --protocol=gp )
                       cmd+=( --non-inter --background --pid-file=/run/vpn.pid )
-                      cmd+=( --os=linux-64 --local-hostname=${prefs.user.login} )
+                      cmd+=( --os=linux-64 )
                       cmd+=( --passwd-on-stdin )
-                      cmd+=( -F _login:user="$1" )
+                      cmd+=( -F _login:user="${prefs.user.login}" )
                       cmd+=( "https://$2.digitalocean.com/ssl-vpn" )
                       set -x; exec "${_a}${_c}"
                     '';

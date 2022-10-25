@@ -38,11 +38,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1662566308,
-        "narHash": "sha256-WH5i/sMhg7D3EbdYu5gnCtPWAquYUE6wFJVDhjNu1cY=",
+        "lastModified": 1666716696,
+        "narHash": "sha256-ZkA7jWweB34lQdzN8+2QnaNU1eIzWwueAsWublwtXDU=",
         "owner": "digitalocean",
         "repo": "cicd",
-        "rev": "ebbb2621b9bcda699f5e3923e4539c110fed66aa",
+        "rev": "6581a7a52acf534e1b8d0f5b0c0db1fd02cb1d7a",
         "type": "github"
       },
       "original": {
@@ -56,11 +56,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1666630982,
-        "narHash": "sha256-eOaSfWSDwF75BWE7DOUKYc7Z5xtCWH/j5LUfDYqD9DI=",
+        "lastModified": 1666721130,
+        "narHash": "sha256-D2GB9EW9szd8+h+Wk8rdSH1Ga8LvUsZt8C73mY41MiA=",
         "owner": "digitalocean",
         "repo": "cthulhu",
-        "rev": "ace3a78fc28cf2d0a224c4ce7d6d1bddd065749a",
+        "rev": "23603a8cbc27b9e755dcdc775332789e60a28892",
         "type": "github"
       },
       "original": {
@@ -112,22 +112,6 @@
         "ref": "master",
         "type": "git",
         "url": "https://github.internal.digitalocean.com/digitalocean/do-nixpkgs"
-      }
-    },
-    "dotfiles": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1661979604,
-        "narHash": "sha256-vnwOwX4T0vSOJwX4qwFcXm8FEKNjWSBxqCkHSlXwgyk=",
-        "ref": "refs/heads/main",
-        "rev": "8a0648de0cc269e0436bd17efd6ae5829d937d64",
-        "revCount": 12,
-        "type": "git",
-        "url": "https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://gist.github.com/bd6c0eec1bd960db6b2aaa57b615272b.git"
       }
     },
     "flake-utils": {
@@ -302,11 +286,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1666539104,
-        "narHash": "sha256-jeuC+d375wHHxMOFLgu7etseCQVJuPNKoEc9X9CsErg=",
+        "lastModified": 1666703756,
+        "narHash": "sha256-GwpMJ1hT+z1fMAUkaGtvbvofJQwdVFDEGVhfE82+AUk=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "0e6df35f39651504249a05191f9a78d251707e22",
+        "rev": "f994293d1eb8812f032e8919e10a594567cf6ef7",
         "type": "github"
       },
       "original": {
@@ -334,11 +318,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1666539104,
-        "narHash": "sha256-jeuC+d375wHHxMOFLgu7etseCQVJuPNKoEc9X9CsErg=",
+        "lastModified": 1666703756,
+        "narHash": "sha256-GwpMJ1hT+z1fMAUkaGtvbvofJQwdVFDEGVhfE82+AUk=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0e6df35f39651504249a05191f9a78d251707e22",
+        "rev": "f994293d1eb8812f032e8919e10a594567cf6ef7",
         "type": "github"
       },
       "original": {
@@ -380,7 +364,6 @@
         "cthulhu": "cthulhu",
         "dao": "dao",
         "do-nixpkgs": "do-nixpkgs",
-        "dotfiles": "dotfiles",
         "flake-utils": "flake-utils_2",
         "fnctl": "fnctl",
         "gomod2nix": "gomod2nix",

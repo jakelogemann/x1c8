@@ -1,4 +1,4 @@
-repo.path = "/home/jlogemann/laptop"
+repo.path = "/home/jlogemann/src/@jlogemann/laptop"
 host.name = "laptop"
 host.arch = "x86_64"
 host.os = "linux"
@@ -9,6 +9,8 @@ user.lastName = "Logemann"
 dns.v4.ns = ["10.124.57.141", "10.124.57.160"]
 packages.fonts = ["nerdfonts","dejavu_fonts", "terminus-nerdfont"]
 packages.global = [
+  "slack",
+  "pcmanfm", 
   "_1password",
   "_1password-gui",
   "aide",

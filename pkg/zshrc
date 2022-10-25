@@ -34,7 +34,7 @@ function local-shell-config(){ echo "${HOME}/.$(shell-name)rc.local"; }
 function maybe-add-path(){ has-path "$1" || test ! -d "$1" || export PATH="$1:$PATH"; }
 function maybe-eval-bin(){ missing-bin "$1" || eval "$($@)"; }
 function maybe-source(){ test ! -r "$1" || source "${2:-$1}"; }
-function missing-bin(){ test ! -x $(which "$1" 2>/dev/null || true); }
+function missing-bin(){ command -v "$1" >/dev/null 2>&1; }
 function reload-config(){ safely-source $(shell-config); }
 function reload-local-config(){ safely-source $(local-shell-config); }
 function reload-shell-aliases(){ safely-source $(shell-aliases); }
@@ -72,6 +72,7 @@ promptinit && colors && compinit && bashcompinit
 #=======================================================================
 
 zstyle ':completion:*'                cache-path        "$zsh_dir/completion.cache"
+zstyle ':vcs_info:*'                  enable            git cvs svn hg
 zstyle ':completion:*'                completer         _complete _match _approximate _expand_alias
 zstyle ':completion:*'                file-list         list=20 insert=10
 zstyle ':completion:*'                squeeze-slashes   true
@@ -284,6 +285,14 @@ bindkey -M isearch " " magic-space
 
 #=======================================================================
 
+
+maybe-eval-bin direnv hook zsh
+maybe-eval-bin navi widget zsh
+# maybe-eval-bin starship init zsh
+maybe-eval-bin zoxide init zsh
+maybe-eval-bin docc completion zsh
+
 # maybe-source   "$HOME/.aliases.sh"
 maybe-source   "$HOME/.cargo/env"
 maybe-source   "$HOME/.zshrc.local"
+
