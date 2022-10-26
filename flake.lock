@@ -114,6 +114,24 @@
         "url": "https://github.internal.digitalocean.com/digitalocean/do-nixpkgs"
       }
     },
+    "dobe": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1666801249,
+        "narHash": "sha256-uEr5PfXgWBsKdNRquryPzxfA8HaHICgk3IulNQS6wdU=",
+        "owner": "digitalocean",
+        "repo": "dobe",
+        "rev": "73b01469be0016ebb428db622b87b42fb872ad49",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "dobe",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1659877975,
@@ -197,6 +215,24 @@
         "type": "github"
       }
     },
+    "go-libvirt": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1664466349,
+        "narHash": "sha256-OjEtKA4CI4Lu0Njn9djayuAQdLeh2a2rdYQYrDnSo0A=",
+        "owner": "digitalocean",
+        "repo": "go-libvirt",
+        "rev": "4cf1be8e79cc2d3e6ef0546d9edf74f81609802d",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "go-libvirt",
+        "type": "github"
+      }
+    },
     "gomod2nix": {
       "inputs": {
         "nixpkgs": [
@@ -236,6 +272,24 @@
       "original": {
         "owner": "nix-community",
         "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "kernel": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1660065116,
+        "narHash": "sha256-vPGQJgNmlb/VSfN3MB4WBXa638+fPGEtKqjrHFliQsA=",
+        "owner": "digitalocean",
+        "repo": "kernel",
+        "rev": "15205c2829ca2cbb5ece5ceaafe1171a8470e62b",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "kernel",
         "type": "github"
       }
     },
@@ -356,6 +410,42 @@
         "type": "github"
       }
     },
+    "qemu": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1655149128,
+        "narHash": "sha256-yXhFMkNJDiDztGZgH4Oz/atxYFAwsH8VcjINDHVBoLM=",
+        "owner": "digitalocean",
+        "repo": "qemu",
+        "rev": "b3646ce3fd77b254ad3773d7b06344e71d84cbda",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "qemu",
+        "type": "github"
+      }
+    },
+    "rolo": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1665503797,
+        "narHash": "sha256-ULwdgz3LVntMpEG7GIjnB31NHKlAlrDDk1he8iJDaFE=",
+        "owner": "digitalocean",
+        "repo": "rolo",
+        "rev": "e710a1d543ec337c693951fe149bdcbec26dab58",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "rolo",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "AstroNvim": "AstroNvim",
@@ -364,13 +454,37 @@
         "cthulhu": "cthulhu",
         "dao": "dao",
         "do-nixpkgs": "do-nixpkgs",
+        "dobe": "dobe",
         "flake-utils": "flake-utils_2",
         "fnctl": "fnctl",
+        "go-libvirt": "go-libvirt",
         "gomod2nix": "gomod2nix",
+        "kernel": "kernel",
         "nix-filter": "nix-filter",
         "nixos-hardware": "nixos-hardware",
         "nixos-templates": "nixos-templates",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_3",
+        "qemu": "qemu",
+        "rolo": "rolo",
+        "systemd": "systemd"
+      }
+    },
+    "systemd": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1666124644,
+        "narHash": "sha256-8RyrUU+C+FQI4NICS16bhZ7u6tNLomKq7i6JZujicd8=",
+        "owner": "digitalocean",
+        "repo": "systemd",
+        "rev": "87e97e439fde1e6c331821cedb46f7e625f34216",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "systemd",
+        "type": "github"
       }
     },
     "utils": {

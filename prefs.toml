@@ -1,4 +1,4 @@
-repo.path = "/home/jlogemann/src/@jlogemann/laptop"
+repo.path = "/home/jlogemann/laptop"
 host.name = "laptop"
 host.arch = "x86_64"
 host.os = "linux"
@@ -110,43 +110,4 @@ packages.global = [
   "yubikey-manager",
   "zip",
   "zoxide",
-]
-packages.internal = [
-  # Project-based Packages
-  "project-artifact",
-  "project-deptracker",
-  "project-dns",
-  "project-docc",
-  "project-droplet",
-  "project-harpoon",
-  "project-hvrouter",
-  "project-netsecpol",
-  "project-networktracerd",
-  "project-north",
-  "project-orca2",
-  "project-plinkod",
-  "project-respond",
-  "project-rmetadata",
-  "project-south",
-  "project-telemetry",
-  # Individual packages (a la carte)
-  "autoreview",
-  "certdump",
-  "certtool",
-  "deployer",
-  "fly",
-  "gitdash",
-  "hvaddrctl",
-  "hvannouncectl",
-  "hvrouterctl",
-  "ipamgetctl",
-  "jump",
-  "gen-dorpc-proto",
-  "ghz",
-  "jsonnet",
-  "plinkoctl",
-  "respondctl",
-  "staff-cert",
-  "tracectl",
-  "vault",
 ]

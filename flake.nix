@@ -45,6 +45,54 @@
       flake = false;
     };
 
+    dobe = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "dobe";
+      flake = false;
+    };
+
+    qemu = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "qemu";
+      flake = false;
+    };
+
+    kernel = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "kernel";
+      flake = false;
+    };
+
+    rolo = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "rolo";
+      flake = false;
+    };
+
+    systemd = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "systemd";
+      flake = false;
+    };
+
+    go-libvirt = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "go-libvirt";
+      flake = false;
+    };
+
     dao = {
       type = "github";
       host = "github.internal.digitalocean.com";
@@ -79,252 +127,90 @@
     */
     prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
   in {
-    # a few values are inherited directly from another project i maintain.
-    inherit (self.inputs.fnctl) lib formatter;
-
     overlays = {
       gomod2nix = self.inputs.gomod2nix.overlays.default;
       /*
       this is a wrapper around the do-nixpkgs repo (with my (experimental!) customizations).
       */
-      do-internal = next: prev: { do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system}; };
-    };
-    nixosModules = {
-      /*
-      do-internal represents "internal" digitalocean configuration.
-      beyond that... I haven't decided what this module does yet..
-      */
-      do-internal = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        imports = [
-          self.inputs.do-nixpkgs.nixosModules.kolide-launcher
-          self.inputs.do-nixpkgs.nixosModules.sentinelone
-        ];
-        services.sentinelone.enable = true;
-        services.kolide-launcher.enable = true;
-        services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
-        nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
-        system.nixos.tags = ["digitalocean"];
-        environment.systemPackages = with pkgs; [
-          (pkgs.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-          (pkgs.symlinkJoin rec {
-            name = "do-nixpkgs-bundle";
-            paths =
-              (builtins.map (p: pkgs.do-nixpkgs."${p}") prefs.packages.internal)
-              ++ [
-                (pkgs.writeShellApplication {
-                  inherit name;
-                  runtimeInputs = with pkgs; [bat lsd coreutils];
-                  text = ''
-                    # shellcheck disable=SC2086,SC2046
-                      base_dir="$(dirname $(dirname $(readlink $0)))"
-                      case $@ in
-                      base*|dir|path) echo "$base_dir";;
-                      bin) echo "$base_dir/bin";;
-                      bins) lsd "$base_dir/bin" ;;
-                      etc) echo "$base_dir/etc";;
-                      pager) $0 tree | bat --file-name="$0 $*" --plain ;;
-                      share) echo "$base_dir/share";;
-                      rev) echo "${self.inputs.cthulhu.shortRev}";;
-                      REV) echo "${self.inputs.cthulhu.rev}";;
-                      tree) lsd --tree "$base_dir" ;;
-                      help) bat -l=bash --style=header-filename,grid,rule,snip "$0" ;;
-                      *) $0 help && exit 127 ;;
-                      esac
+      do-internal = next: prev:
+        with prev; {
+          do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
+          do-internal = prev.symlinkJoin rec {
+            name = "do-internal";
+            paths = with self.inputs.do-nixpkgs.packages.${prev.system};
+              [
+                (prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")
+                (prev.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+                (prev.writeShellApplication {
+                  name = "ghe";
+                  runtimeInputs = with prev; [gh];
+                  text = prev.lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
+                })
+                (prev.writeShellApplication {
+                  name = "vault";
+                  runtimeInputs = with prev; [vault];
+                  text = prev.lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
+                })
+                (prev.writeShellApplication {
+                  name = "vpn";
+                  runtimeInputs = with prev; [coreutils gnused openconnect];
+                  text = let
+                    _a = "$";
+                    _c = "{cmd[@]}";
+                  in ''
+                    declare -a cmd=( openconnect )
+                    cmd+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
+                    cmd+=( -F _challenge:passwd=1 )
+                    cmd+=( --protocol=gp )
+                    cmd+=( --non-inter --background --pid-file=/run/vpn.pid )
+                    cmd+=( --os=linux-64 )
+                    cmd+=( --passwd-on-stdin )
+                    cmd+=( -F _login:user="$1" "https://$2.digitalocean.com/ssl-vpn" )
+                    set -x; exec "${_a}${_c}"
                   '';
                 })
-                (pkgs.writeShellApplication {
-                  name = "ghe";
-                  runtimeInputs = with pkgs; [gh];
-                  text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-                })
-                (pkgs.writeShellApplication {
-                  name = "vault";
-                  runtimeInputs = with pkgs; [vault];
-                  text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-                })
-              ];
-          })
-        ];
-      };
-
-      /*
-      lenovo-x1c8 contains the configuration that is specific to my Lenovo
-      X1 Carbon (8th gen), but generic enough to perhaps reuse.
-      */
-      lenovo-x1c8 = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        system.nixos.tags = ["x1c8"];
-        boot.initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
-        imports = [
-          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
-        ];
-      };
-
-      /*
-      this contains ... well.. me. (unless "you" configure it)
-      */
-      ${prefs.user.login} = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        users.users.${prefs.user.login} = {
-          extraGroups = ["video" "users" prefs.user.login];
-          group = prefs.user.login;
-          initialPassword = "";
-          home = "/home/${prefs.user.login}";
-          shell = pkgs.zsh;
-          uid = 1000;
-          isNormalUser = true;
+              ]
+              ++ (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
+                # Project-based Packages
+                "project-artifact"
+                "project-deptracker"
+                "project-dns"
+                "project-docc"
+                "project-droplet"
+                "project-harpoon"
+                "project-hvrouter"
+                "project-netsecpol"
+                "project-networktracerd"
+                "project-north"
+                "project-orca2"
+                "project-plinkod"
+                "project-respond"
+                "project-rmetadata"
+                "project-south"
+                "project-telemetry"
+                # Individual packages (a la carte)
+                "autoreview"
+                "certdump"
+                "certtool"
+                "deployer"
+                "fly"
+                "gitdash"
+                "hvaddrctl"
+                "hvannouncectl"
+                "hvrouterctl"
+                "ipamgetctl"
+                "jump"
+                "gen-dorpc-proto"
+                "ghz"
+                "jsonnet"
+                "plinkoctl"
+                "respondctl"
+                "staff-cert"
+                "tracectl"
+                "vault"
+              ]);
+          };
         };
-        users.groups.${prefs.user.login}.gid = 990;
-        system.nixos.tags = [prefs.user.login];
-      };
-
-      /*
-      shellz wraps ZSH with my current configuration.
-      */
-      shellz = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        programs.zsh = {
-          autosuggestions.enable = true;
-          autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
-          autosuggestions.highlightStyle = "fg=cyan";
-          autosuggestions.strategy = ["completion"];
-          enable = true;
-          # enableBashCompletion = true;
-          enableCompletion = true;
-          # enableGlobalCompInit = true;
-          histFile = "$HOME/.zsh_history";
-          histSize = 100000;
-          syntaxHighlighting.enable = true;
-          syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
-          syntaxHighlighting.styles.alias = "fg=magenta,bold";
-          interactiveShellInit = ''
-            source "${./pkg/zshrc}"
-            hash -d current-sw=/run/current-system/sw
-            hash -d booted-sw=/run/booted-system/sw
-            eval "$(${lib.getExe pkgs.direnv} hook zsh)"
-            eval "$(${lib.getExe pkgs.navi} widget zsh)"
-            eval "$(${lib.getExe pkgs.starship} init zsh)"
-            eval "$(${lib.getExe pkgs.zoxide} init zsh)"
-            source "${pkgs.skim}/share/skim/key-bindings.zsh"
-          '';
-        };
-      };
-
-      /*
-      nvim wraps neovim with my current configuration.
-      */
-      nvim = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        programs.neovim = {
-          enable = true;
-          vimAlias = true;
-          defaultEditor = true;
-          viAlias = true;
-          configure.packages.default.start = with pkgs.vimPlugins; [
-            vim-lastplace
-            nord-nvim
-            telescope-nvim
-            nvim-lspconfig
-            vim-nix
-            copilot-vim
-            nvim-dap
-            nvim-dap-ui
-            nvim-web-devicons
-            i3config-vim
-            vim-easy-align
-            vim-concourse
-            vim-automkdir
-            vim-caddyfile
-            nvim-cursorline
-            alpha-nvim
-            NrrwRgn
-            editorconfig-nvim
-            vim-gnupg
-            vim-cue
-            vim-go
-            vim-hcl
-            (nvim-treesitter.withPlugins (p:
-              builtins.map (n: p."tree-sitter-${n}") [
-                "bash"
-                "c"
-                "comment"
-                "cpp"
-                "css"
-                "go"
-                "html"
-                "json"
-                "lua"
-                "make"
-                "markdown"
-                "nix"
-                "python"
-                "ruby"
-                "rust"
-                "toml"
-                "vim"
-                "yaml"
-              ]))
-            onedarkpro-nvim
-          ];
-
-          configure.customRC = ''
-            colorscheme nord
-            set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
-            set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
-            set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
-            set backspace=indent,eol,start background=dark
-            let mapleader=' '
-
-            if has("user_commands")
-            command! -bang -nargs=? -complete=file E e<bang> <args>
-            command! -bang -nargs=? -complete=file W w<bang> <args>
-            command! -bang -nargs=? -complete=file Wq wq<bang> <args>
-            command! -bang -nargs=? -complete=file WQ wq<bang> <args>
-            command! -bang Wa wa<bang>
-            command! -bang WA wa<bang>
-            command! -bang Q q<bang>
-            command! -bang QA qa<bang>
-            command! -bang Qa qa<bang>
-            endif
-
-            nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
-            nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
-            nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
-            nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
-            nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
-            nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
-            nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
-            nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
-            nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
-            nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
-
-            command! -nargs=* SystemSwitch silent !sudo system switch<cr>
-            command! -nargs=* System silent! !system <q-args><cr>
-            command! -nargs=0 NixFmt silent! !nix run nixpkgs\#alejandra -- -q %:p<cr>
-          '';
-        };
-      };
     };
 
     nixosConfigurations = {
@@ -345,22 +231,18 @@
               pkgs,
               ...
             }: {
+              nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+
+              hardware.cpu.intel.updateMicrocode = true;
+              hardware.gpgSmartcards.enable = true;
+              hardware.ksm.enable = true;
+              hardware.mcelog.enable = true;
+              nix.daemonCPUSchedPolicy = "idle";
+              nix.daemonIOSchedPriority = 5;
+
               boot = {
-                extraModulePackages = with pkgs; [
-                  linuxPackages_latest.acpi_call
-                  linuxPackages_latest.cpupower
-                  linuxPackages_latest.tp_smapi
-                  linuxPackages_latest.bpftrace
-                  tpm2-tools
-                  tpm2-tss
-                  i2c-tools
-                ];
                 binfmt.emulatedSystems = ["aarch64-linux"];
                 enableContainers = true;
-                extraModprobeConfig = ''
-                  options kvm_intel nested=1
-                  options iwlwifi disable_11ax=1
-                  '';
                 #kernel.sysctl."kernel.modules_disabled" = 1;
                 initrd.kernelModules = ["dm-snapshot" "br_netfilter"];
                 initrd.luks.devices.root.allowDiscards = true;
@@ -383,246 +265,511 @@
                 kernel.sysctl."net.ipv6.conf.all.accept_redirects" = 0;
                 kernel.sysctl."vm.swappiness" = 20;
                 kernel.sysctl."net.ipv6.conf.default.accept_redirects" = 0;
-                kernelParams = ["i8042.reset=1" "i8042.nomux=1"];
-                kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
                 loader.systemd-boot.enable = true;
                 supportedFilesystems = lib.mkForce ["btrfs" "vfat"];
-                kernelModules = [
-                  "acpi_call"
-                  "br_netfilter"
-                  "btusb"
-                  "drm"
-                  "ext2"
-                  "i915"
-                  "iwlmvm"
-                  "kvm-intel"
-                  "mei_me"
-                  "sd_mod"
-                  "snd_hda_intel"
-                  "tpm_tis"
-                  "xhci_pci"
-                ];
               };
 
-              # programs.ssh.ciphers = [ "chacha20-poly1305@openssh.com" "aes256-gcm@openssh.com" ];
-              # programs.ssh.kexAlgorithms = ["curve25519-sha256@libssh.org" "diffie-hellman-group-exchange-sha256"];
-              # programs.ssh.macs = ["hmac-sha2-512-etm@openssh.com" "hmac-sha1"];
+              # ssh.ciphers = [ "chacha20-poly1305@openssh.com" "aes256-gcm@openssh.com" ];
+              # ssh.kexAlgorithms = ["curve25519-sha256@libssh.org" "diffie-hellman-group-exchange-sha256"];
+              # ssh.macs = ["hmac-sha2-512-etm@openssh.com" "hmac-sha1"];
               # virtualisation.docker.rootless.daemon.settings.fixed-cidr-v6 = "fd00::/80";
               # virtualisation.docker.rootless.daemon.settings.ipv6 = true;
-              security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
-              console.earlySetup = true;
-              console.font = "Lat2-Terminus16";
-              console.useXkbConfig = true;
-              documentation.dev.enable = false;
-              documentation.doc.enable = true;
-              documentation.enable = true;
-              documentation.man.enable = true;
-              documentation.man.generateCaches = false;
-              documentation.man.man-db.enable = true;
-              documentation.nixos.includeAllModules = true;
-              documentation.nixos.options.warningsAreErrors = false;
-              environment.pathsToLink = ["/share/zsh"];
-              environment.shellAliases.git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
-              environment.shellAliases.l = "ls -alh";
-              environment.shellAliases.la = "${lib.getExe pkgs.lsd} -a";
-              environment.shellAliases.ll = "${lib.getExe pkgs.lsd} -l";
-              environment.shellAliases.lla = "${lib.getExe pkgs.lsd} -la";
-              environment.shellAliases.ls = lib.getExe pkgs.lsd;
-              environment.shellAliases.lt = "${lib.getExe pkgs.lsd} --tree";
-              environment.shellAliases.systemctl-fzf-service = "systemctl --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'system services> '";
-              environment.shellAliases.systemctl-fzf-user-service = "systemctl --user --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'user services> '";
-              environment.shellAliases.systemctl-edit = "sudo systemctl edit --full --force";
-              environment.shellAliases.tmux = "tmux -2u";
-              environment.shellAliases.dmesg = "sudo dmesg";
-              environment.shellAliases.tf = "terraform";
-              environment.shellAliases.dc = "docker compose";
-              environment.shellAliases.g = "git";
-              environment.shellAliases.find-broken-symlinks = "find -L . -type l 2>/dev/null";
-              environment.shellAliases.rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
-              environment.variables.EDITOR = "nvim";
-              environment.variables.BAT_STYLE = "header-filename,grid";
-              environment.variables.BROWSER = "firefox";
-              environment.variables.PAGER = lib.getExe pkgs.bat;
-              fileSystems."/".device = "/dev/disk/by-uuid/45264d57-59a7-428b-a85a-35fa35c1ddeb";
-              fileSystems."/".fsType = "btrfs";
-              fileSystems."/boot".device = "/dev/disk/by-uuid/6696-7F45";
-              fileSystems."/boot".fsType = "vfat";
-              fonts.enableDefaultFonts = true;
-              fonts.fontconfig.antialias = true;
-              fonts.fontconfig.defaultFonts.emoji = ["Noto Color Emoji"];
-              fonts.fontconfig.defaultFonts.monospace = ["DaddyTimeMono Nerd Font" "TerminessTTF Nerd Font Mono" "DejaVu Sans Mono"];
-              fonts.fontconfig.defaultFonts.sansSerif = ["DejaVu Sans"];
-              fonts.fontconfig.defaultFonts.serif = ["DejaVu Serif"];
-              fonts.fontconfig.enable = true;
-              fonts.fontconfig.hinting.autohint = true;
-              fonts.fontconfig.hinting.style = "hintslight";
-              fonts.fonts = builtins.map (p: pkgs.${p}) prefs.packages.fonts;
-              hardware.cpu.intel.updateMicrocode = true;
-              hardware.gpgSmartcards.enable = true;
-              hardware.ksm.enable = true;
-              hardware.mcelog.enable = true;
-              hardware.opengl.enable = true;
-              hardware.acpilight.enable = true;
-              hardware.opengl.extraPackages = with pkgs; [intel-compute-runtime];
-              hardware.pulseaudio.enable = true;
-              networking.dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
-              networking.domain = "local";
-              networking.enableIPv6 = true;
-              networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
-              networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
-              networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
-              networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
-              networking.hosts."10.38.5.231" = ["servicecatalog-staging.internal.digitalocean.com"];
-              networking.firewall.allowPing = true;
-              networking.firewall.allowedTCPPorts = [];
-              networking.firewall.allowedUDPPorts = [];
-              networking.firewall.autoLoadConntrackHelpers = true;
-              networking.firewall.checkReversePath = false;
-              networking.firewall.enable = true;
-              networking.firewall.logRefusedConnections = true;
-              networking.firewall.logRefusedPackets = true;
-              networking.firewall.logReversePathDrops = true;
-              networking.firewall.pingLimit = "--limit 1/minute --limit-burst 5";
-              networking.firewall.rejectPackets = true;
-              networking.hostName = prefs.host.name;
-              networking.nameservers = [
-                "8.8.8.8" "8.8.4.4"
-              ] ++ prefs.dns.v4.ns;
-              # networking.resolvconf.enable = lib.mkForce false;
-              networking.useDHCP = true;
-              # networking.networkmanager.dns = lib.mkForce "none";
-              # networking.networkmanager.enable = true;
-              # networking.useHostResolvConf = true;
-              networking.useNetworkd = true;
-              networking.usePredictableInterfaceNames = true;
-              networking.wireless.iwd.enable = true;
-              networking.wireless.userControlled.enable = true;
-              networking.wireless.interfaces = ["wlan0"];
-              nix.daemonCPUSchedPolicy = "idle";
-              nix.daemonIOSchedPriority = 5;
-              nix.gc.automatic = true;
-              nix.gc.dates = "daily";
-              system.autoUpgrade.enable = true;
-              nix.optimise.automatic = true;
-              nix.optimise.dates = ["daily"];
-              nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
-              nix.settings.allow-dirty = true;
-              nix.settings.cores = 2;
-              nix.settings.allowed-users = ["root" prefs.user.login];
-              nix.settings.auto-optimise-store = true;
-              nix.settings.experimental-features = ["nix-command" "flakes"];
-              nix.settings.system-features = ["kvm"];
-              nix.settings.log-lines = 50;
-              nix.settings.max-free = 64 * 1024 * 1024 * 1024;
-              nix.settings.trusted-users = ["root" prefs.user.login];
-              nix.settings.warn-dirty = false;
               nixpkgs.config.allowUnfree = true;
               nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
               powerManagement.cpuFreqGovernor = "powersave";
-              programs.iftop.enable = true;
-              programs.iotop.enable = true;
-              programs.htop.enable = true;
-              programs.git.config.alias.aliases = "config --show-scope --get-regexp alias";
-              programs.git.config.alias.amend = "commit --amend";
-              programs.git.config.alias.amendall = "commit --amend --all";
-              programs.git.config.alias.amendit = "commit --amend --no-edit";
-              programs.git.config.alias.branches = "branch --all";
-              programs.git.config.alias.l = "log --pretty=oneline --graph --abbrev-commit";
-              programs.git.config.alias.quick-rebase = "rebase --interactive --root --autosquash --autostash";
-              programs.git.config.alias.remotes = "remote --verbose";
-              programs.git.config.alias.list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
-              programs.git.config.alias.user = "config --show-scope --get-regexp user";
-              programs.git.config.alias.wtf-config = "config --show-scope --show-origin --list --includes";
-              programs.git.config.apply.whitespace = "fix";
-              programs.git.config.branch.sort = "-committerdate";
-              programs.git.config.core.excludesfile = pkgs.writeText "git-excludes" (lib.concatStringsSep "\n" ["*~" "tags" ".nvimlog" "*.swp" "*.swo" "*.log" ".DS_Store"]);
-              programs.git.config.core.ignorecase = true;
-              programs.git.config.core.pager = lib.getExe pkgs.delta;
-              programs.git.config.core.untrackedcache = true;
-              programs.git.config.credential."https://github.com".helper = "gh auth git-credential";
-              programs.git.config.credential."https://github.internal.digitalocean.com".helper = "ghe auth git-credential";
-              programs.git.config.diff.bin.textconv = "hexdump -v -C";
-              programs.git.config.diff.renames = "copies";
-              programs.git.config.help.autocorrect = 1;
-              programs.git.config.init.defaultbranch = "main";
-              programs.git.config.interactive.difffilter = "${lib.getExe pkgs.delta} --color-only";
-              programs.git.config.pull.ff = true;
-              programs.git.config.pull.rebase = true;
-              programs.git.config.push.default = "simple";
-              programs.git.config.push.followtags = true;
-              programs.git.enable = true;
-              programs.git.lfs.enable = lib.mkDefault true;
-              programs.gnupg.agent.enable = true;
-              programs.gnupg.agent.enableBrowserSocket = true;
-              programs.gnupg.agent.enableSSHSupport = true;
-              programs.ssh.extraConfig = builtins.readFile ./pkg/ssh_config;
-              programs.ssh.forwardX11 = false;
-              programs.ssh.hostKeyAlgorithms = ["ecdsa-sha2-nistp256" "ssh-ed25519" "ssh-rsa"];
-              programs.ssh.setXAuthLocation = false;
-              programs.ssh.startAgent = false;
-              programs.starship.enable = true;
-              programs.starship.settings.add_newline = false;
-              # programs.starship.settings.character.continuation_prompt = "[▶▶](dim cyan)";
-              programs.starship.settings.character.error_symbol = "[➜](bold red)";
-              programs.starship.settings.golang.symbol = "";
-              programs.starship.settings.character.success_symbol = "[➜](bold green)";
-              programs.starship.settings.character.vicmd_symbol = "[](bold magenta)";
-              programs.starship.settings.format = "$directory $character";
-              programs.starship.settings.right_format = "$all";
-              programs.starship.settings.git_status.disabled = true;
-              programs.starship.settings.directory.truncate_to_repo = false;
-              programs.starship.settings.git_branch.disabled = true;
-              programs.starship.settings.shlvl.disabled = false;
-              programs.starship.settings.time.disabled = false;
-              programs.starship.settings.scan_timeout = 10;
-              programs.tmux.aggressiveResize = true;
-              programs.tmux.baseIndex = 1;
-              programs.tmux.enable = true;
-              programs.tmux.newSession = true;
-              programs.tmux.plugins = with pkgs.tmuxPlugins; [pain-control onedark-theme sensible];
-              programs.tmux.reverseSplit = true;
-              programs.tmux.secureSocket = true;
-              programs.tmux.shortcut = "a";
-              programs.tmux.terminal = "tmux-256color";
-              security.allowUserNamespaces = true;
-              security.forcePageTableIsolation = true;
-              security.polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
-              security.protectKernelImage = true;
-              security.rtkit.enable = true;
-              security.tpm2.enable = true;
-              security.virtualisation.flushL1DataCache = "always";
-              services.acpid.enable = true;
-              services.unclutter.enable = true;
-              services.earlyoom.enable = true;
-              services.earlyoom.freeMemThreshold = 10;
-              xdg.mime.enable = true;
-              xdg.mime.defaultApplications."application/pdf" = "firefox.desktop";
-              xdg.mime.removedAssociations."audio/mp3" = [ "mpv.desktop" "umpv.desktop" ];
-              xdg.mime.removedAssociations."inode/directory" = "codium.desktop";
-              # services.earlyoom.freeSwapThreshold = 10;
-              services.fwupd.enable = true;
-              services.journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
-              services.journald.forwardToSyslog = false;
-              hardware.uinput.enable = true;
-              hardware.enableAllFirmware = true;
-              services.tlp.enable = true;
-              services.upower.enable = true;
-              services.emacs.enable = false;
-              services.emacs.install = false;
-              services.xserver.autorun = true;
-              services.xserver.displayManager.autoLogin.enable = true;
-              services.xserver.displayManager.autoLogin.user = prefs.user.login;
-              services.xserver.displayManager.defaultSession = "none+i3";
-              services.xserver.enable = true;
-              services.xserver.enableCtrlAltBackspace = true;
-              services.xserver.layout = "us";
-              services.xserver.libinput.touchpad.disableWhileTyping = true;
-              services.xserver.videoDrivers = ["modesetting"];
-              services.xserver.windowManager.i3.enable = true;
-              services.xserver.windowManager.i3.package = pkgs.i3-gaps;
-              services.xserver.xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
-              sound.enable = true;
-              sound.mediaKeys.enable = true;
+              console.earlySetup = true;
+              console.font = "Lat2-Terminus16";
+              console.useXkbConfig = true;
+
+              documentation = {
+                dev.enable = false;
+                doc.enable = true;
+                enable = true;
+                man.enable = true;
+                man.generateCaches = false;
+                man.man-db.enable = true;
+                nixos.includeAllModules = true;
+                nixos.options.warningsAreErrors = false;
+              };
+
+              environment = {
+                pathsToLink = ["/share/zsh"];
+                shellAliases = {
+                  git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
+                  l = "ls -alh";
+                  la = "${lib.getExe pkgs.lsd} -a";
+                  ll = "${lib.getExe pkgs.lsd} -l";
+                  lla = "${lib.getExe pkgs.lsd} -la";
+                  ls = lib.getExe pkgs.lsd;
+                  lt = "${lib.getExe pkgs.lsd} --tree";
+                  systemctl-fzf-service = "systemctl --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'system services> '";
+                  systemctl-fzf-user-service = "systemctl --user --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'user services> '";
+                  systemctl-edit = "sudo systemctl edit --full --force";
+                  tmux = "tmux -2u";
+                  dmesg = "sudo dmesg";
+                  tf = "terraform";
+                  dc = "docker compose";
+                  g = "git";
+                  find-broken-symlinks = "find -L . -type l 2>/dev/null";
+                  rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
+                };
+                variables = {
+                  EDITOR = "nvim";
+                  BAT_STYLE = "header-filename,grid";
+                  BROWSER = "firefox";
+                  PAGER = lib.getExe pkgs.bat;
+                };
+              };
+
+              fonts = {
+                enableDefaultFonts = true;
+                fonts = builtins.map (p: pkgs.${p}) prefs.packages.fonts;
+                fontconfig = {
+                  enable = true;
+                  antialias = true;
+                  defaultFonts.emoji = ["Noto Color Emoji"];
+                  defaultFonts.monospace = ["DaddyTimeMono Nerd Font" "TerminessTTF Nerd Font Mono" "DejaVu Sans Mono"];
+                  defaultFonts.sansSerif = ["DejaVu Sans"];
+                  defaultFonts.serif = ["DejaVu Serif"];
+                  hinting.autohint = true;
+                  hinting.style = "hintslight";
+                };
+              };
+
+              fileSystems = {
+                "/" = {
+                  device = "/dev/disk/by-uuid/45264d57-59a7-428b-a85a-35fa35c1ddeb";
+                  fsType = "btrfs";
+                };
+                "/boot" = {
+                  device = "/dev/disk/by-uuid/6696-7F45";
+                  fsType = "vfat";
+                };
+              };
+
+              networking = {
+                dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
+                domain = "local";
+                enableIPv6 = true;
+                firewall.allowPing = true;
+                firewall.allowedTCPPorts = [];
+                firewall.allowedUDPPorts = [];
+                firewall.autoLoadConntrackHelpers = true;
+                firewall.checkReversePath = false;
+                firewall.enable = true;
+                firewall.logRefusedConnections = true;
+                firewall.logRefusedPackets = true;
+                firewall.logReversePathDrops = true;
+                firewall.pingLimit = "--limit 1/minute --limit-burst 5";
+                firewall.rejectPackets = true;
+                hostName = prefs.host.name;
+                nameservers =
+                  prefs.dns.v4.ns
+                  ++ [
+                    "8.8.8.8"
+                    "8.8.4.4"
+                  ];
+                #   resolvconf.enable = lib.mkForce false;
+                useDHCP = true;
+                #   networkmanager.dns = lib.mkForce "none";
+                #   networkmanager.enable = true;
+                #   useHostResolvConf = true;
+                useNetworkd = true;
+                usePredictableInterfaceNames = true;
+                wireless.iwd.enable = true;
+                wireless.userControlled.enable = true;
+                wireless.interfaces = ["wlan0"];
+              };
+
+              nix.gc = {
+                automatic = true;
+                dates = "daily";
+              };
+
+              nix.optimise = {
+                automatic = true;
+                dates = ["daily"];
+              };
+
+              nix.settings = {
+                allow-dirty = true;
+                cores = 2;
+                auto-optimise-store = true;
+                experimental-features = ["nix-command" "flakes" "ca-derivations"];
+                system-features = ["kvm"];
+                log-lines = 50;
+                max-free = 64 * 1024 * 1024 * 1024;
+                warn-dirty = false;
+              };
+
+              programs = {
+                iftop.enable = true;
+                iotop.enable = true;
+                htop.enable = true;
+                git.enable = true;
+                git.lfs.enable = true;
+                starship.enable = true;
+
+                git.config = {
+                  alias.aliases = "config --show-scope --get-regexp alias";
+                  alias.amend = "commit --amend";
+                  alias.amendall = "commit --amend --all";
+                  alias.amendit = "commit --amend --no-edit";
+                  alias.branches = "branch --all";
+                  alias.l = "log --pretty=oneline --graph --abbrev-commit";
+                  alias.quick-rebase = "rebase --interactive --root --autosquash --autostash";
+                  alias.remotes = "remote --verbose";
+                  alias.list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
+                  alias.user = "config --show-scope --get-regexp user";
+                  alias.wtf-config = "config --show-scope --show-origin --list --includes";
+                  apply.whitespace = "fix";
+                  branch.sort = "-committerdate";
+                  core.excludesfile = pkgs.writeText "git-excludes" (lib.concatStringsSep "\n" ["*~" "tags" ".nvimlog" "*.swp" "*.swo" "*.log" ".DS_Store"]);
+                  core.ignorecase = true;
+                  core.pager = lib.getExe pkgs.delta;
+                  core.untrackedcache = true;
+                  credential."https://github.com".helper = "gh auth git-credential";
+                  credential."https://github.internal.digitalocean.com".helper = "ghe auth git-credential";
+                  diff.bin.textconv = "hexdump -v -C";
+                  diff.renames = "copies";
+                  help.autocorrect = 1;
+                  init.defaultbranch = "main";
+                  interactive.difffilter = "${lib.getExe pkgs.delta} --color-only";
+                  pull.ff = true;
+                  pull.rebase = true;
+                  push.default = "simple";
+                  push.followtags = true;
+                };
+
+                neovim = {
+                  enable = true;
+                  vimAlias = true;
+                  defaultEditor = true;
+                  viAlias = true;
+                  configure.packages.default.start = with pkgs.vimPlugins; [
+                    vim-lastplace
+                    nord-nvim
+                    telescope-nvim
+                    nvim-lspconfig
+                    vim-nix
+                    copilot-vim
+                    nvim-dap
+                    nvim-dap-ui
+                    nvim-web-devicons
+                    i3config-vim
+                    vim-easy-align
+                    vim-concourse
+                    vim-automkdir
+                    vim-caddyfile
+                    nvim-cursorline
+                    alpha-nvim
+                    NrrwRgn
+                    editorconfig-nvim
+                    vim-gnupg
+                    vim-cue
+                    vim-go
+                    vim-hcl
+                    (nvim-treesitter.withPlugins (p:
+                      builtins.map (n: p."tree-sitter-${n}") [
+                        "bash"
+                        "c"
+                        "comment"
+                        "cpp"
+                        "css"
+                        "go"
+                        "html"
+                        "json"
+                        "lua"
+                        "make"
+                        "markdown"
+                        "nix"
+                        "python"
+                        "ruby"
+                        "rust"
+                        "toml"
+                        "vim"
+                        "yaml"
+                      ]))
+                    onedarkpro-nvim
+                  ];
+
+                  configure.customRC = ''
+                    colorscheme nord
+                    set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
+                    set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
+                    set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
+                    set backspace=indent,eol,start background=dark
+                    let mapleader=' '
+
+                    if has("user_commands")
+                    command! -bang -nargs=? -complete=file E e<bang> <args>
+                    command! -bang -nargs=? -complete=file W w<bang> <args>
+                    command! -bang -nargs=? -complete=file Wq wq<bang> <args>
+                    command! -bang -nargs=? -complete=file WQ wq<bang> <args>
+                    command! -bang Wa wa<bang>
+                    command! -bang WA wa<bang>
+                    command! -bang Q q<bang>
+                    command! -bang QA qa<bang>
+                    command! -bang Qa qa<bang>
+                    endif
+
+                    nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
+                    nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
+                    nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
+                    nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
+                    nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
+                    nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
+                    nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
+                    nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
+                    nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
+                    nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
+
+                    command! -nargs=* SystemSwitch silent !sudo system switch<cr>
+                    command! -nargs=* System silent! !system <q-args><cr>
+                    command! -nargs=0 NixFmt silent! !nix run nixpkgs\#alejandra -- -q %:p<cr>
+                  '';
+                };
+
+                starship.settings = {
+                  add_newline = false;
+                  character.error_symbol = "[➜](bold red)";
+                  golang.symbol = "";
+                  character.success_symbol = "[➜](bold green)";
+                  character.vicmd_symbol = "[](bold magenta)";
+                  format = "$directory $character";
+                  right_format = "$all";
+                  git_status.disabled = true;
+                  directory.truncate_to_repo = false;
+                  git_branch.disabled = true;
+                  shlvl.disabled = false;
+                  time.disabled = false;
+                  scan_timeout = 10;
+                };
+
+                ssh = {
+                  extraConfig = builtins.readFile ./pkg/ssh_config;
+                  forwardX11 = false;
+                  hostKeyAlgorithms = ["ecdsa-sha2-nistp256" "ssh-ed25519" "ssh-rsa"];
+                  setXAuthLocation = false;
+                  startAgent = false;
+                };
+
+                tmux = {
+                  aggressiveResize = true;
+                  baseIndex = 1;
+                  enable = true;
+                  newSession = true;
+                  plugins = with pkgs.tmuxPlugins; [pain-control onedark-theme sensible];
+                  reverseSplit = true;
+                  secureSocket = true;
+                  shortcut = "a";
+                  terminal = "tmux-256color";
+                };
+
+                zsh = {
+                  autosuggestions.enable = true;
+                  autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
+                  autosuggestions.highlightStyle = "fg=cyan";
+                  autosuggestions.strategy = ["completion"];
+                  enable = true;
+                  # enableBashCompletion = true;
+                  enableCompletion = true;
+                  # enableGlobalCompInit = true;
+                  histFile = "$HOME/.zsh_history";
+                  histSize = 100000;
+                  syntaxHighlighting.enable = true;
+                  syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
+                  syntaxHighlighting.styles.alias = "fg=magenta,bold";
+                  interactiveShellInit = ''
+                    source "${./pkg/zshrc}"
+                    hash -d current-sw=/run/current-system/sw
+                    hash -d booted-sw=/run/booted-system/sw
+                    eval "$(${lib.getExe pkgs.direnv} hook zsh)"
+                    eval "$(${lib.getExe pkgs.navi} widget zsh)"
+                    eval "$(${lib.getExe pkgs.starship} init zsh)"
+                    eval "$(${lib.getExe pkgs.zoxide} init zsh)"
+                    source "${pkgs.skim}/share/skim/key-bindings.zsh"
+                  '';
+                };
+
+                gnupg.agent.enable = true;
+                gnupg.agent.enableBrowserSocket = true;
+                gnupg.agent.enableSSHSupport = true;
+              };
+
+              security = {
+                sudo.enable = true;
+                allowUserNamespaces = true;
+                forcePageTableIsolation = true;
+                polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
+                protectKernelImage = true;
+                rtkit.enable = true;
+                tpm2.enable = true;
+                virtualisation.flushL1DataCache = "always";
+              };
+
+              services = {
+                acpid.enable = true;
+                unclutter.enable = true;
+                earlyoom.enable = true;
+                earlyoom.freeMemThreshold = 10;
+                tlp.enable = true;
+                upower.enable = true;
+                emacs.enable = false;
+                emacs.install = false;
+                fwupd.enable = true;
+                journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
+                journald.forwardToSyslog = false;
+
+                dnscrypt-proxy2 = {
+                  enable = lib.mkForce false;
+                  settings = {
+                    # Immediately respond to A and AAAA queries for host names without a
+                    # domain name.
+                    block_unqualified = true;
+                    # Immediately respond to queries for local zones instead
+                    # of leaking them to upstream resolvers (always causing errors or
+                    # timeouts).
+                    block_undelegated = true;
+                    # ------------------------
+                    server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
+                    ipv6_servers = true;
+                    ipv4_servers = true;
+                    use_syslog = true;
+                    require_nolog = true;
+                    require_nofilter = false;
+                    edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
+                    require_dnssec = true;
+                    blocked_query_response = "refused";
+                    block_ipv6 = false;
+
+                    allowed_ips.allowed_ips_file =
+                      /*
+                      Allowed IP lists support the same patterns as IP blocklists
+                      If an IP response matches an allow ip entry, the corresponding session
+                      will bypass IP filters.
+
+                      Time-based rules are also supported to make some websites only accessible at specific times of the day.
+                      */
+                      pkgs.writeText "allowed_ips" ''
+                      '';
+
+                    cloaking_rules =
+                      /*
+                      Cloaking returns a predefined address for a specific name.
+                      In addition to acting as a HOSTS file, it can also return the IP address
+                      of a different name. It will also do CNAME flattening.
+                      */
+                      pkgs.writeText "cloaking_rules" ''
+                        # The following rules force "safe" (without adult content) search
+                        # results from Google, Bing and YouTube.
+                          www.google.*             forcesafesearch.google.com
+                          www.bing.com             strict.bing.com
+                          =duckduckgo.com          safe.duckduckgo.com
+                          www.youtube.com          restrictmoderate.youtube.com
+                          m.youtube.com            restrictmoderate.youtube.com
+                          youtubei.googleapis.com  restrictmoderate.youtube.com
+                          youtube.googleapis.com   restrictmoderate.youtube.com
+                          www.youtube-nocookie.com restrictmoderate.youtube.com
+                      '';
+
+                    forwarding_rules = let
+                      iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
+                    in
+                      pkgs.writeText "forwarding_rules" ''
+                        do.co ${iDNS}
+                        *.do.co ${iDNS}
+                        internal.digitalocean.com ${iDNS}
+                        *.internal.digitalocean.com ${iDNS}
+                        10.in.arpa ${iDNS}
+                      '';
+                    cloak_ttl = 600;
+                    allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
+                    # blocked_names.blocked_names_file =
+                    #   pkgs.writeText "blocked_names"
+                    #   (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
+
+                    blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
+                    query_log.file = "/dev/stdout";
+                    query_log.ignored_qtypes = ["DNSKEY"];
+                    blocked_names.log_file = "/dev/stdout";
+                    allowed_ips.log_file = "/dev/stdout";
+                    blocked_ips.log_file = "/dev/stdout";
+                    allowed_names.log_file = "/dev/stdout";
+                    sources = {
+                      public-resolvers = {
+                        urls = [
+                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+                          "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+                        ];
+                        cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                        refresh_delay = 72;
+                        prefix = "";
+                      };
+                      relays = {
+                        urls = [
+                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+                          "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
+                          "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
+                        ];
+                        cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                        refresh_delay = 72;
+                        prefix = "";
+                      };
+                      odoh-servers = {
+                        urls = [
+                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+                          "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                          "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
+                        ];
+                        cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
+                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                        refresh_delay = 24;
+                        prefix = "";
+                      };
+                      odoh-relays = {
+                        urls = [
+                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+                          "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                          "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
+                        ];
+                        cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
+                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                        refresh_delay = 24;
+                        prefix = "";
+                      };
+                    };
+                  };
+                };
+              };
+
+              services.xserver = {
+                autorun = true;
+                displayManager.autoLogin.enable = true;
+                displayManager.autoLogin.user = prefs.user.login;
+                displayManager.defaultSession = "none+i3";
+                enable = true;
+                enableCtrlAltBackspace = true;
+                layout = "us";
+                libinput.touchpad.disableWhileTyping = true;
+                videoDrivers = ["modesetting"];
+                windowManager.i3.enable = true;
+                windowManager.i3.package = pkgs.i3-gaps;
+                xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
+              };
+
+              xdg.mime = {
+                enable = true;
+                defaultApplications."application/pdf" = "firefox.desktop";
+                removedAssociations."audio/mp3" = ["mpv.desktop" "umpv.desktop"];
+                removedAssociations."inode/directory" = "codium.desktop";
+              };
+
               swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
               users.groups.users = {};
               users.groups.wheel = {};
@@ -637,168 +784,6 @@
                 services.NetworkManager-wait-online.enable = false;
                 services.systemd-networkd-wait-online.enable = false;
               };
-
-              security.pam.u2f = {
-                enable = true;
-                control = "sufficient";
-                authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
-                  "${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
-                ]);
-              };
-
-              security.sudo = {
-                enable = true;
-                extraRules = [
-                  {
-                    users = [prefs.user.login];
-                    runAs = "root";
-                    commands =
-                      ["ALL"]
-                      ++ (builtins.map (name: {
-                          command = "/run/current-system/sw/bin/${name}";
-                          options = ["NOSETENV" "NOPASSWD"];
-                        }) [
-                          "nix-collect-garbage"
-                          "poweroff"
-                          "reboot"
-                          "shutdown"
-                          "system"
-                          "systemd-cgls"
-                          "systemd-cgtop"
-                          "vpn"
-                          "dmesg"
-                          "systemctl"
-                        ]);
-                  }
-                ];
-              };
-
-              services.dnscrypt-proxy2 = {
-                enable = lib.mkForce false;
-                settings = {
-                  # Immediately respond to A and AAAA queries for host names without a
-                  # domain name.
-                  block_unqualified = true;
-                  # Immediately respond to queries for local zones instead
-                  # of leaking them to upstream resolvers (always causing errors or
-                  # timeouts).
-                  block_undelegated = true;
-                  # ------------------------
-                  server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
-                  ipv6_servers = true;
-                  ipv4_servers = true;
-                  use_syslog = true;
-                  require_nolog = true;
-                  require_nofilter = false;
-                  edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
-                  require_dnssec = true;
-                  blocked_query_response = "refused";
-                  block_ipv6 = false;
-
-                  allowed_ips.allowed_ips_file =
-                    /*
-                    Allowed IP lists support the same patterns as IP blocklists
-                    If an IP response matches an allow ip entry, the corresponding session
-                    will bypass IP filters.
-
-                    Time-based rules are also supported to make some websites only accessible at specific times of the day.
-                    */
-                    pkgs.writeText "allowed_ips" ''
-                    '';
-
-                  cloaking_rules =
-                    /*
-                    Cloaking returns a predefined address for a specific name.
-                    In addition to acting as a HOSTS file, it can also return the IP address
-                    of a different name. It will also do CNAME flattening.
-                    */
-                    pkgs.writeText "cloaking_rules" ''
-                      # The following rules force "safe" (without adult content) search
-                      # results from Google, Bing and YouTube.
-                        www.google.*             forcesafesearch.google.com
-                        www.bing.com             strict.bing.com
-                        =duckduckgo.com          safe.duckduckgo.com
-                        www.youtube.com          restrictmoderate.youtube.com
-                        m.youtube.com            restrictmoderate.youtube.com
-                        youtubei.googleapis.com  restrictmoderate.youtube.com
-                        youtube.googleapis.com   restrictmoderate.youtube.com
-                        www.youtube-nocookie.com restrictmoderate.youtube.com
-                    '';
-
-                  forwarding_rules = let
-                    iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
-                  in
-                    pkgs.writeText "forwarding_rules" ''
-                      do.co ${iDNS}
-                      *.do.co ${iDNS}
-                      internal.digitalocean.com ${iDNS}
-                      *.internal.digitalocean.com ${iDNS}
-                      10.in.arpa ${iDNS}
-                    '';
-                  cloak_ttl = 600;
-                  allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
-                  # blocked_names.blocked_names_file =
-                  #   pkgs.writeText "blocked_names"
-                  #   (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
-
-                  blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
-                  query_log.file = "/dev/stdout";
-                  query_log.ignored_qtypes = ["DNSKEY"];
-                  blocked_names.log_file = "/dev/stdout";
-                  allowed_ips.log_file = "/dev/stdout";
-                  blocked_ips.log_file = "/dev/stdout";
-                  allowed_names.log_file = "/dev/stdout";
-                  sources = {
-                    public-resolvers = {
-                      urls = [
-                        "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
-                        "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
-                      ];
-                      cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
-                      minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                      refresh_delay = 72;
-                      prefix = "";
-                    };
-                    relays = {
-                      urls = [
-                        "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
-                        "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
-                        "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
-                        "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
-                      ];
-                      cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
-                      minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                      refresh_delay = 72;
-                      prefix = "";
-                    };
-                    odoh-servers = {
-                      urls = [
-                        "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
-                        "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                        "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                        "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
-                      ];
-                      cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
-                      minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                      refresh_delay = 24;
-                      prefix = "";
-                    };
-                    odoh-relays = {
-                      urls = [
-                        "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
-                        "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                        "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                        "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
-                      ];
-                      cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
-                      minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                      refresh_delay = 24;
-                      prefix = "";
-                    };
-                  };
-                };
-              };
-
 
               environment.systemPackages =
                 (builtins.map (p: pkgs."${p}") prefs.packages.global)
@@ -879,35 +864,6 @@
                       "\"$@\""
                     ];
                   })
-
-                  (pkgs.writeShellApplication {
-                    name = "ghe";
-                    runtimeInputs = with pkgs; [gh];
-                    text = lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-                  })
-
-                  (pkgs.writeShellApplication {
-                    name = "vault";
-                    runtimeInputs = with pkgs; [vault];
-                    text = lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${pkgs.do-nixpkgs.sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-                  })
-
-                  (pkgs.writeShellApplication {
-                    name = "vpn";
-                    runtimeInputs = with pkgs; [ gum coreutils gnused openconnect];
-                    text = let _a = "$"; _c="{cmd[@]}"; in ''
-                      declare -a cmd=( openconnect )
-                      cmd+=( --csd-wrapper=${pkgs.openconnect}/libexec/openconnect/hipreport.sh ) 
-                      cmd+=( -F _challenge:passwd=1 )
-                      cmd+=( --protocol=gp )
-                      cmd+=( --non-inter --background --pid-file=/run/vpn.pid )
-                      cmd+=( --os=linux-64 )
-                      cmd+=( --passwd-on-stdin )
-                      cmd+=( -F _login:user="${prefs.user.login}" )
-                      cmd+=( "https://$2.digitalocean.com/ssl-vpn" )
-                      set -x; exec "${_a}${_c}"
-                    '';
-                  })
                 ]);
 
               # This value determines the NixOS release from which the default
@@ -917,10 +873,162 @@
               # Before changing this value read the documentation for this option
               # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html)
               system.stateVersion = lib.mkForce "22.05";
+              system.autoUpgrade.enable = true;
             })
           ];
       };
     };
+
+    nixosModules = {
+      /*
+      do-internal represents "internal" digitalocean configuration.
+      beyond that... I haven't decided what this module does yet..
+      */
+      do-internal = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        imports = [
+          self.inputs.do-nixpkgs.nixosModules.kolide-launcher
+          self.inputs.do-nixpkgs.nixosModules.sentinelone
+        ];
+        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
+        services.sentinelone.enable = true;
+        services.kolide-launcher.enable = true;
+        services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
+        nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
+        system.nixos.tags = ["digitalocean"];
+        networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
+        networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
+        networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
+        networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
+        # networking.hosts."10.38.5.231" = ["servicecatalog-staging.internal.digitalocean.com"];
+        environment.systemPackages = [pkgs.do-internal];
+      };
+
+      /*
+      lenovo-x1c8 contains the configuration that is specific to my Lenovo
+      X1 Carbon (8th gen), but generic enough to perhaps reuse.
+      */
+      lenovo-x1c8 = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        system.nixos.tags = ["x1c8"];
+        boot.initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
+        imports = [
+          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
+        ];
+
+        boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
+        boot.kernelParams = ["i8042.reset=1" "i8042.nomux=1"];
+        hardware.acpilight.enable = true;
+        hardware.enableAllFirmware = true;
+        hardware.opengl.enable = true;
+        hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
+        hardware.pulseaudio.enable = true;
+        hardware.uinput.enable = true;
+        networking.wireless.interfaces = ["wlan0"];
+        networking.wireless.iwd.enable = true;
+        networking.wireless.userControlled.enable = true;
+        sound.enable = true;
+        sound.mediaKeys.enable = true;
+
+        boot.extraModprobeConfig = ''
+          options kvm_intel nested=1
+          options iwlwifi disable_11ax=1
+        '';
+
+        boot.extraModulePackages = with pkgs; [
+          linuxPackages_latest.acpi_call
+          linuxPackages_latest.cpupower
+          linuxPackages_latest.tp_smapi
+          linuxPackages_latest.bpftrace
+          tpm2-tools
+          tpm2-tss
+          i2c-tools
+        ];
+
+        boot.kernelModules = [
+          "acpi_call"
+          "br_netfilter"
+          "btusb"
+          "drm"
+          "ext2"
+          "i915"
+          "iwlmvm"
+          "kvm-intel"
+          "mei_me"
+          "sd_mod"
+          "snd_hda_intel"
+          "tpm_tis"
+          "xhci_pci"
+        ];
+      };
+
+      /*
+      this contains ... well.. me. (unless "you" configure it)
+      */
+      ${prefs.user.login} = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        users.users.${prefs.user.login} = {
+          extraGroups = ["video" "users" prefs.user.login];
+          group = prefs.user.login;
+          initialPassword = "";
+          home = "/home/${prefs.user.login}";
+          shell = pkgs.zsh;
+          uid = 1000;
+          isNormalUser = true;
+        };
+        nix.settings.allowed-users = [prefs.user.login];
+        nix.settings.trusted-users = [prefs.user.login];
+        users.groups.${prefs.user.login}.gid = 990;
+        system.nixos.tags = [prefs.user.login];
+
+        security.pam.u2f = {
+          enable = true;
+          control = "sufficient";
+          authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
+            "${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
+          ]);
+        };
+
+        security.sudo.extraRules = [
+          {
+            users = [prefs.user.login];
+            runAs = "root";
+            commands =
+              ["ALL"]
+              ++ (builtins.map (name: {
+                  command = "/run/current-system/sw/bin/${name}";
+                  options = ["NOSETENV" "NOPASSWD"];
+                }) [
+                  "nix-collect-garbage"
+                  "poweroff"
+                  "reboot"
+                  "shutdown"
+                  "system"
+                  "systemd-cgls"
+                  "systemd-cgtop"
+                  "vpn"
+                  "dmesg"
+                  "systemctl"
+                ]);
+          }
+        ];
+      };
+    };
+
+    # finally, inherit a few values from another project i maintain (utility functions and formatting).
+    inherit (self.inputs.fnctl) lib formatter;
   };
   # vim:sts=2:et:ft=nix:fdm=indent:fdl=0:fcl=all:fdo=all
 }
