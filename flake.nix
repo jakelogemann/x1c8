@@ -129,6 +129,84 @@
   in {
     overlays = {
       gomod2nix = self.inputs.gomod2nix.overlays.default;
+      my-nvim = next: prev: {
+        neovim = prev.neovim.override {
+          extraName = "-jlogemann";
+          viAlias = true;
+          vimAlias = true;
+
+          configure = {
+            customRC = ''
+              luafile ${./pkg/nvim.lua}
+            '';
+            packages.default = with prev.vimPlugins; {
+              start = [
+
+                NrrwRgn
+                alpha-nvim
+                cmp-buffer 
+                cmp-calc
+                cmp-emoji
+                cmp-nvim-lsp 
+                cmp-omni
+                cmp-path 
+                cmp-spell
+                cmp-treesitter
+                copilot-vim
+                editorconfig-nvim
+                feline-nvim
+                gitsigns-nvim
+                i3config-vim
+                neorg
+                nord-nvim
+                nvim-cmp 
+                nvim-cursorline
+                nvim-dap
+                nvim-dap-ui
+                nvim-lspconfig
+                nvim-web-devicons
+                plenary-nvim
+                telescope-nvim
+                trouble-nvim
+                vim-automkdir
+                vim-caddyfile
+                vim-concourse
+                vim-cue
+                vim-easy-align
+                vim-gnupg
+                vim-go
+                vim-hcl
+                vim-lastplace
+                vim-nix
+
+                (nvim-treesitter.withPlugins (p:
+                  builtins.map (n: p."tree-sitter-${n}") [
+                    "bash"
+                    "c"
+                    "comment"
+                    "cpp"
+                    "css"
+                    "go"
+                    "html"
+                    "json"
+                    "lua"
+                    "make"
+                    "markdown"
+                    "nix"
+                    "python"
+                    "ruby"
+                    "rust"
+                    "toml"
+                    "vim"
+                    "yaml"
+                  ]))
+                onedarkpro-nvim
+              ];
+            };
+
+          };
+        };
+      };
       /*
       this is a wrapper around the do-nixpkgs repo (with my (experimental!) customizations).
       */
@@ -275,6 +353,7 @@
               # virtualisation.docker.rootless.daemon.settings.fixed-cidr-v6 = "fd00::/80";
               # virtualisation.docker.rootless.daemon.settings.ipv6 = true;
               nixpkgs.config.allowUnfree = true;
+              nix.nrBuildUsers = 8;
               nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
               powerManagement.cpuFreqGovernor = "powersave";
               console.earlySetup = true;
@@ -441,95 +520,6 @@
                   push.followtags = true;
                 };
 
-                neovim = {
-                  enable = true;
-                  vimAlias = true;
-                  defaultEditor = true;
-                  viAlias = true;
-                  configure.packages.default.start = with pkgs.vimPlugins; [
-                    vim-lastplace
-                    nord-nvim
-                    telescope-nvim
-                    nvim-lspconfig
-                    vim-nix
-                    copilot-vim
-                    nvim-dap
-                    nvim-dap-ui
-                    nvim-web-devicons
-                    i3config-vim
-                    vim-easy-align
-                    vim-concourse
-                    vim-automkdir
-                    vim-caddyfile
-                    nvim-cursorline
-                    alpha-nvim
-                    NrrwRgn
-                    editorconfig-nvim
-                    vim-gnupg
-                    vim-cue
-                    vim-go
-                    vim-hcl
-                    (nvim-treesitter.withPlugins (p:
-                      builtins.map (n: p."tree-sitter-${n}") [
-                        "bash"
-                        "c"
-                        "comment"
-                        "cpp"
-                        "css"
-                        "go"
-                        "html"
-                        "json"
-                        "lua"
-                        "make"
-                        "markdown"
-                        "nix"
-                        "python"
-                        "ruby"
-                        "rust"
-                        "toml"
-                        "vim"
-                        "yaml"
-                      ]))
-                    onedarkpro-nvim
-                  ];
-
-                  configure.customRC = ''
-                    colorscheme nord
-                    set number nobackup noswapfile tabstop=2 shiftwidth=2 softtabstop=2 nocompatible autoread
-                    set expandtab smartcase autoindent nostartofline hlsearch incsearch mouse=a
-                    set cmdheight=2 wildmenu showcmd cursorline ruler spell foldmethod=syntax nowrap
-                    set backspace=indent,eol,start background=dark
-                    let mapleader=' '
-
-                    if has("user_commands")
-                    command! -bang -nargs=? -complete=file E e<bang> <args>
-                    command! -bang -nargs=? -complete=file W w<bang> <args>
-                    command! -bang -nargs=? -complete=file Wq wq<bang> <args>
-                    command! -bang -nargs=? -complete=file WQ wq<bang> <args>
-                    command! -bang Wa wa<bang>
-                    command! -bang WA wa<bang>
-                    command! -bang Q q<bang>
-                    command! -bang QA qa<bang>
-                    command! -bang Qa qa<bang>
-                    endif
-
-                    nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
-                    nnoremap <silent> <leader>e <CMD>NvimTreeToggle<CR>
-                    nnoremap <silent> <leader><leader>f <CMD>Telescope find_files<CR>
-                    nnoremap <silent> <leader><leader>r <CMD>Telescope symbols<CR>
-                    nnoremap <silent> <leader><leader>R <CMD>Telescope registers<CR>
-                    nnoremap <silent> <leader><leader>z <CMD>Telescope current_buffer_fuzzy_find<CR>
-                    nnoremap <silent> <leader><leader>m <CMD>Telescope marks<CR>
-                    nnoremap <silent> <leader><leader>H <CMD>Telescope help_tags<CR>
-                    nnoremap <silent> <leader><leader>M <CMD>Telescope man_pages<CR>
-                    nnoremap <silent> <leader><leader>c <CMD>Telescope commands<CR>
-
-                    command! -nargs=* SystemSwitch silent !sudo system switch<cr>
-                    command! -nargs=* System silent! !system <q-args><cr>
-                    command! -nargs=0 NixFmt silent! !nix run nixpkgs\#alejandra -- -q %:p<cr>
-                  '';
-                };
-
                 starship.settings = {
                   add_newline = false;
                   character.error_symbol = "[➜](bold red)";
@@ -615,8 +605,6 @@
                 earlyoom.freeMemThreshold = 10;
                 tlp.enable = true;
                 upower.enable = true;
-                emacs.enable = false;
-                emacs.install = false;
                 fwupd.enable = true;
                 journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
                 journald.forwardToSyslog = false;
@@ -880,6 +868,20 @@
     };
 
     nixosModules = {
+      emax = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        services.emacs = {
+          enable = true;
+          install = true;
+          package = pkgs.emacsWithPackages (epkgs: [
+            epkgs.melpaStablePackages.magit
+          ]);
+        };
+      };
       /*
       do-internal represents "internal" digitalocean configuration.
       beyond that... I haven't decided what this module does yet..

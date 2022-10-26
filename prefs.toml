@@ -75,6 +75,7 @@ packages.global = [
   "lynis",
   "mtr",
   "navi",
+  "neovim",
   "nerdctl",
   "ossec",
   "packer",
