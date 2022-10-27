@@ -45,6 +45,14 @@
       flake = false;
     };
 
+    servicecatalog-snapshot = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "servicecatalog-snapshots";
+      flake = false;
+    };
+
     dobe = {
       type = "github";
       host = "github.internal.digitalocean.com";

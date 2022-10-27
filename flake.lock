@@ -262,11 +262,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1666875108,
-        "narHash": "sha256-sf0uvlDIatV/eYUJ8N5+Si21og3B6G+AKXive3RUH4E=",
+        "lastModified": 1666887363,
+        "narHash": "sha256-+bs3z5wk57MHmqTELsx62jrySYJbiWfQIW+Tj79oNGI=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "32fe7d2ebb7e338ad95a3ea9393fc6ad681368ce",
+        "rev": "d3f21617acace32097a53b0b74fb5000d333d094",
         "type": "github"
       },
       "original": {
@@ -466,7 +466,26 @@
         "nixpkgs": "nixpkgs_3",
         "qemu": "qemu",
         "rolo": "rolo",
+        "servicecatalog-snapshot": "servicecatalog-snapshot",
         "systemd": "systemd"
+      }
+    },
+    "servicecatalog-snapshot": {
+      "flake": false,
+      "locked": {
+        "host": "github.internal.digitalocean.com",
+        "lastModified": 1666889188,
+        "narHash": "sha256-CMxZJIpFE3X30n3hpwT7z2K4XTt6EDjrIUtmkcBuCw8=",
+        "owner": "digitalocean",
+        "repo": "servicecatalog-snapshots",
+        "rev": "00129f7e52a198f1623e24b44248928cb994bbab",
+        "type": "github"
+      },
+      "original": {
+        "host": "github.internal.digitalocean.com",
+        "owner": "digitalocean",
+        "repo": "servicecatalog-snapshots",
+        "type": "github"
       }
     },
     "systemd": {
