@@ -127,6 +127,7 @@
   outputs = {
     self,
     nixpkgs,
+    flake-utils,
     ...
   }: let
     /*
@@ -138,26 +139,35 @@
     overlays = {
       gomod2nix = self.inputs.gomod2nix.overlays.default;
       my-nvim = next: prev: {
+        AstroNvim = prev.neovim.override {
+          extraName = "-AstroNvim";
+          viAlias = true;
+          vimAlias = true;
+          extraLuaPackages = pkgs:
+            with pkgs; [
+              luarocks-nix
+            ];
+        };
+
         neovim = prev.neovim.override {
           extraName = "-jlogemann";
           viAlias = true;
           vimAlias = true;
-
+          extraLuaPackages = pkgs:
+            with pkgs; [
+              luarocks-nix
+            ];
           configure = {
-            customRC = ''
-              luafile ${./pkg/nvim.lua}
-            '';
+            customRC = "\nluafile ${./pkg/nvim.lua}\n";
             packages.default = with prev.vimPlugins; {
               start = [
-
-                NrrwRgn
                 alpha-nvim
-                cmp-buffer 
+                cmp-buffer
                 cmp-calc
                 cmp-emoji
-                cmp-nvim-lsp 
+                cmp-nvim-lsp
                 cmp-omni
-                cmp-path 
+                cmp-path
                 cmp-spell
                 cmp-treesitter
                 copilot-vim
@@ -167,7 +177,7 @@
                 i3config-vim
                 neorg
                 nord-nvim
-                nvim-cmp 
+                nvim-cmp
                 nvim-cursorline
                 nvim-dap
                 nvim-dap-ui
@@ -186,6 +196,8 @@
                 vim-hcl
                 vim-lastplace
                 vim-nix
+                which-key-nvim
+                onedarkpro-nvim
 
                 (nvim-treesitter.withPlugins (p:
                   builtins.map (n: p."tree-sitter-${n}") [
@@ -208,10 +220,8 @@
                     "vim"
                     "yaml"
                   ]))
-                onedarkpro-nvim
               ];
             };
-
           };
         };
       };
@@ -317,14 +327,10 @@
               pkgs,
               ...
             }: {
-              nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
-
               hardware.cpu.intel.updateMicrocode = true;
               hardware.gpgSmartcards.enable = true;
               hardware.ksm.enable = true;
               hardware.mcelog.enable = true;
-              nix.daemonCPUSchedPolicy = "idle";
-              nix.daemonIOSchedPriority = 5;
 
               boot = {
                 binfmt.emulatedSystems = ["aarch64-linux"];
@@ -360,9 +366,7 @@
               # ssh.macs = ["hmac-sha2-512-etm@openssh.com" "hmac-sha1"];
               # virtualisation.docker.rootless.daemon.settings.fixed-cidr-v6 = "fd00::/80";
               # virtualisation.docker.rootless.daemon.settings.ipv6 = true;
-              nixpkgs.config.allowUnfree = true;
               nix.nrBuildUsers = 8;
-              nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
               powerManagement.cpuFreqGovernor = "powersave";
               console.earlySetup = true;
               console.font = "Lat2-Terminus16";
@@ -468,34 +472,15 @@
                 wireless.interfaces = ["wlan0"];
               };
 
-              nix.gc = {
-                automatic = true;
-                dates = "daily";
-              };
-
-              nix.optimise = {
-                automatic = true;
-                dates = ["daily"];
-              };
-
-              nix.settings = {
-                allow-dirty = true;
-                cores = 2;
-                auto-optimise-store = true;
-                experimental-features = ["nix-command" "flakes" "ca-derivations"];
-                system-features = ["kvm"];
-                log-lines = 50;
-                max-free = 64 * 1024 * 1024 * 1024;
-                warn-dirty = false;
-              };
-
               programs = {
                 iftop.enable = true;
+                light.enable = true;
                 iotop.enable = true;
                 htop.enable = true;
                 git.enable = true;
                 git.lfs.enable = true;
                 starship.enable = true;
+                xwayland.enable = true;
 
                 git.config = {
                   alias.aliases = "config --show-scope --get-regexp alias";
@@ -564,6 +549,36 @@
                   terminal = "tmux-256color";
                 };
 
+                sway = {
+                  enable = true;
+                  extraPackages = with pkgs; [
+                    swaylock
+                    dmenu
+                    foot
+                    swayidle
+                    wofi
+                    light
+                    i3status-rust
+                  ];
+                  extraSessionCommands = ''
+                    # SDL:
+                    export SDL_VIDEODRIVER=wayland
+                    # QT (needs qt5.qtwayland in systemPackages):
+                    export QT_QPA_PLATFORM=wayland-egl
+                    export QT_WAYLAND_DISABLE_WINDOWDECORATION="1"
+                    # Fix for some Java AWT applications (e.g. Android Studio),
+                    # use this if they aren't displayed properly:
+                    export _JAVA_AWT_WM_NONREPARENTING=1
+                  '';
+                  wrapperFeatures.base = true;
+                  wrapperFeatures.gtk = true;
+                };
+
+                thunar = {
+                  enable = true;
+                  plugins = with pkgs.xfce; [thunar-archive-plugin thunar-volman];
+                };
+
                 zsh = {
                   autosuggestions.enable = true;
                   autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
@@ -593,16 +608,22 @@
                 gnupg.agent.enable = true;
                 gnupg.agent.enableBrowserSocket = true;
                 gnupg.agent.enableSSHSupport = true;
+                wireshark.enable = true;
+                wireshark.package = pkgs.wireshark;
               };
 
               security = {
-                sudo.enable = true;
                 allowUserNamespaces = true;
+                dhparams.enable = true;
                 forcePageTableIsolation = true;
+                lockKernelModules = true;
+                pam.enableEcryptfs = true;
                 polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
                 protectKernelImage = true;
                 rtkit.enable = true;
+                sudo.enable = true;
                 tpm2.enable = true;
+                tpm2.pkcs11.enable = true;
                 virtualisation.flushL1DataCache = "always";
               };
 
@@ -616,132 +637,6 @@
                 fwupd.enable = true;
                 journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
                 journald.forwardToSyslog = false;
-
-                dnscrypt-proxy2 = {
-                  enable = lib.mkForce false;
-                  settings = {
-                    # Immediately respond to A and AAAA queries for host names without a
-                    # domain name.
-                    block_unqualified = true;
-                    # Immediately respond to queries for local zones instead
-                    # of leaking them to upstream resolvers (always causing errors or
-                    # timeouts).
-                    block_undelegated = true;
-                    # ------------------------
-                    server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
-                    ipv6_servers = true;
-                    ipv4_servers = true;
-                    use_syslog = true;
-                    require_nolog = true;
-                    require_nofilter = false;
-                    edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
-                    require_dnssec = true;
-                    blocked_query_response = "refused";
-                    block_ipv6 = false;
-
-                    allowed_ips.allowed_ips_file =
-                      /*
-                      Allowed IP lists support the same patterns as IP blocklists
-                      If an IP response matches an allow ip entry, the corresponding session
-                      will bypass IP filters.
-
-                      Time-based rules are also supported to make some websites only accessible at specific times of the day.
-                      */
-                      pkgs.writeText "allowed_ips" ''
-                      '';
-
-                    cloaking_rules =
-                      /*
-                      Cloaking returns a predefined address for a specific name.
-                      In addition to acting as a HOSTS file, it can also return the IP address
-                      of a different name. It will also do CNAME flattening.
-                      */
-                      pkgs.writeText "cloaking_rules" ''
-                        # The following rules force "safe" (without adult content) search
-                        # results from Google, Bing and YouTube.
-                          www.google.*             forcesafesearch.google.com
-                          www.bing.com             strict.bing.com
-                          =duckduckgo.com          safe.duckduckgo.com
-                          www.youtube.com          restrictmoderate.youtube.com
-                          m.youtube.com            restrictmoderate.youtube.com
-                          youtubei.googleapis.com  restrictmoderate.youtube.com
-                          youtube.googleapis.com   restrictmoderate.youtube.com
-                          www.youtube-nocookie.com restrictmoderate.youtube.com
-                      '';
-
-                    forwarding_rules = let
-                      iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
-                    in
-                      pkgs.writeText "forwarding_rules" ''
-                        do.co ${iDNS}
-                        *.do.co ${iDNS}
-                        internal.digitalocean.com ${iDNS}
-                        *.internal.digitalocean.com ${iDNS}
-                        10.in.arpa ${iDNS}
-                      '';
-                    cloak_ttl = 600;
-                    allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
-                    # blocked_names.blocked_names_file =
-                    #   pkgs.writeText "blocked_names"
-                    #   (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
-
-                    blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
-                    query_log.file = "/dev/stdout";
-                    query_log.ignored_qtypes = ["DNSKEY"];
-                    blocked_names.log_file = "/dev/stdout";
-                    allowed_ips.log_file = "/dev/stdout";
-                    blocked_ips.log_file = "/dev/stdout";
-                    allowed_names.log_file = "/dev/stdout";
-                    sources = {
-                      public-resolvers = {
-                        urls = [
-                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
-                          "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
-                        ];
-                        cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
-                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                        refresh_delay = 72;
-                        prefix = "";
-                      };
-                      relays = {
-                        urls = [
-                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
-                          "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
-                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
-                          "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
-                        ];
-                        cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
-                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                        refresh_delay = 72;
-                        prefix = "";
-                      };
-                      odoh-servers = {
-                        urls = [
-                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
-                          "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                          "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
-                        ];
-                        cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
-                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                        refresh_delay = 24;
-                        prefix = "";
-                      };
-                      odoh-relays = {
-                        urls = [
-                          "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
-                          "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                          "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                          "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
-                        ];
-                        cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
-                        minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                        refresh_delay = 24;
-                        prefix = "";
-                      };
-                    };
-                  };
-                };
               };
 
               services.xserver = {
@@ -784,7 +679,7 @@
               environment.systemPackages =
                 (builtins.map (p: pkgs."${p}") prefs.packages.global)
                 ++ (with pkgs; [
-                  (pkgs.writeShellApplication rec {
+                  (pkgs.writeShellApplication {
                     name = "system";
                     runtimeInputs = with pkgs; [
                       bat
@@ -808,14 +703,14 @@
                         tree) lsd --tree --no-symlink;;
                         shutdown|poweroff|reboot|journalctl) exec "$@";;
                         repl) nix repl ${(pkgs.writeText "repl.nix" ''
-                         rec {
-                           inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs lib options config;
-                           inherit (flake.inputs) nixpkgs do-nixpkgs nixos-hardware;
-                           flake = builtins.getFlake "${prefs.repo.path}";
-                           #flake = builtins.getFlake "${self}";
-                           hostName = "${prefs.host.name}";
+                          let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
+                           inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
+                           lib = pkgs.lib // flake.lib;
+                           inherit (config.networking) hostName;
                            system = "${system}";
-                        }
+                           # commented, but viable alternative:
+                           ## flake = builtins.getFlake "${self}";
+                        })
                       '')};;
                         *) $0 help && exit 127;;
                       esac'';
@@ -876,6 +771,160 @@
     };
 
     nixosModules = {
+      myDNS = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }:
+        lib.mkIf config.services.dnscrypt-proxy2.enable {
+          services.dnscrypt-proxy2.settings = {
+            # Immediately respond to A and AAAA queries for host names without a
+            # domain name.
+            block_unqualified = true;
+            # Immediately respond to queries for local zones instead
+            # of leaking them to upstream resolvers (always causing errors or
+            # timeouts).
+            block_undelegated = true;
+            # ------------------------
+            server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
+            ipv6_servers = true;
+            ipv4_servers = true;
+            use_syslog = true;
+            require_nolog = true;
+            require_nofilter = false;
+            edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
+            require_dnssec = true;
+            blocked_query_response = "refused";
+            block_ipv6 = false;
+
+            allowed_ips.allowed_ips_file =
+              /*
+              Allowed IP lists support the same patterns as IP blocklists
+              If an IP response matches an allow ip entry, the corresponding session
+              will bypass IP filters.
+
+              Time-based rules are also supported to make some websites only accessible at specific times of the day.
+              */
+              pkgs.writeText "allowed_ips" ''
+              '';
+
+            cloaking_rules =
+              /*
+              Cloaking returns a predefined address for a specific name.
+              In addition to acting as a HOSTS file, it can also return the IP address
+              of a different name. It will also do CNAME flattening.
+              */
+              pkgs.writeText "cloaking_rules" ''
+                # The following rules force "safe" (without adult content) search
+                # results from Google, Bing and YouTube.
+                  www.google.*             forcesafesearch.google.com
+                  www.bing.com             strict.bing.com
+                  =duckduckgo.com          safe.duckduckgo.com
+                  www.youtube.com          restrictmoderate.youtube.com
+                  m.youtube.com            restrictmoderate.youtube.com
+                  youtubei.googleapis.com  restrictmoderate.youtube.com
+                  youtube.googleapis.com   restrictmoderate.youtube.com
+                  www.youtube-nocookie.com restrictmoderate.youtube.com
+              '';
+
+            forwarding_rules = let
+              iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
+            in
+              pkgs.writeText "forwarding_rules" ''
+                do.co ${iDNS}
+                *.do.co ${iDNS}
+                internal.digitalocean.com ${iDNS}
+                *.internal.digitalocean.com ${iDNS}
+                10.in.arpa ${iDNS}
+              '';
+            cloak_ttl = 600;
+            allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
+            # blocked_names.blocked_names_file =
+            #   pkgs.writeText "blocked_names"
+            #   (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
+
+            blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
+            query_log.file = "/dev/stdout";
+            query_log.ignored_qtypes = ["DNSKEY"];
+            blocked_names.log_file = "/dev/stdout";
+            allowed_ips.log_file = "/dev/stdout";
+            blocked_ips.log_file = "/dev/stdout";
+            allowed_names.log_file = "/dev/stdout";
+            sources = {
+              public-resolvers = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 72;
+                prefix = "";
+              };
+              relays = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 72;
+                prefix = "";
+              };
+              odoh-servers = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 24;
+                prefix = "";
+              };
+              odoh-relays = {
+                urls = [
+                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
+                ];
+                cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
+                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+                refresh_delay = 24;
+                prefix = "";
+              };
+            };
+          };
+        };
+      nixConfig = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        nix.daemonCPUSchedPolicy = "idle";
+        nix.daemonIOSchedPriority = 5;
+        nix.gc.automatic = true;
+        nix.gc.dates = "daily";
+        nix.optimise.automatic = true;
+        nix.optimise.dates = ["daily"];
+        nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+        nix.settings.allow-dirty = true;
+        nix.settings.auto-optimise-store = true;
+        nix.settings.cores = 2;
+        nix.settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
+        nix.settings.log-lines = 50;
+        nix.settings.max-free = 64 * 1024 * 1024 * 1024;
+        nix.settings.system-features = ["kvm"];
+        nix.settings.warn-dirty = false;
+        nixpkgs.config.allowUnfree = true;
+        nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
+      };
       emax = {
         config,
         lib,
@@ -1037,8 +1086,83 @@
       };
     };
 
-    # finally, inherit a few values from another project i maintain (utility functions and formatting).
-    inherit (self.inputs.fnctl) lib formatter;
+    lib = rec {
+      inherit (flake-utils.lib) filterPackages mkApp check-utils;
+      supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux"];
+      eachSystem = flake-utils.lib.eachSystem supportedSystems;
+      eachSystemMap = flake-utils.lib.eachSystemMap supportedSystems;
+      overlaysList = builtins.attrValues self.overlays;
+      modulesList = builtins.attrValues self.nixosModules;
+      withPkgs = f:
+        eachSystemMap (system:
+          f (import nixpkgs {
+            inherit system;
+            overlays = overlaysList;
+          }));
+    };
+
+    packages = self.lib.withPkgs (pkgs: {
+      inherit (pkgs) AstroNvim do-internal gomod2nix;
+    });
+
+    apps = self.lib.withPkgs (pkgs: {
+      docc = self.lib.mkApp {
+        drv = pkgs.do-internal;
+        exePath = "/bin/docc";
+      };
+      fly = self.lib.mkApp {drv = pkgs.do-nixpkgs.fly;};
+      do-internal = self.lib.mkApp {
+        drv = pkgs.do-internal;
+        exePath = "/bin/do-internal";
+      };
+      nvim = self.lib.mkApp {
+        drv = pkgs.neovim;
+        exePath = "/bin/nvim";
+      };
+      AstroNvim = self.lib.mkApp {
+        drv = pkgs.AstroNvim;
+        exePath = "/bin/nvim";
+      };
+      default = self.lib.mkApp {
+        drv = pkgs.writeShellApplication {
+          name = "system";
+          runtimeInputs = with pkgs; [
+            bat
+            git
+            lsd
+            nix
+            nixos-rebuild
+          ];
+          text = ''
+            [[ $# -gt 0 ]] || exec $0 help; cd "${prefs.repo.path}";
+            case $1 in
+            bin) echo "/run/current-system/sw/bin";;
+            bins) lsd --no-symlink "$($0 bin)";;
+            boot|build|build-vm*|dry-activate|dry-build|test|switch) nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
+            edit) [[ $UID -ne 0 ]] && $EDITOR flake.nix;;
+            flake) [[ $UID -ne 0 ]] && nix "$@";;
+            git) [[ $UID -ne 0 ]] && exec "$@";;
+            help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
+            pager) $0 tree | bat --file-name="$0 $*" --plain;;
+            repo|path|dir) pwd;;
+            tree) lsd --tree --no-symlink;;
+            shutdown|poweroff|reboot|journalctl) exec "$@";;
+            repl) nix repl ${(pkgs.writeText "repl.nix" ''
+              let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
+               inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
+               lib = pkgs.lib // flake.lib;
+               inherit (config.networking) hostName;
+               # commented, but viable alternative:
+               ## flake = builtins.getFlake "${self}";
+              })
+            '')};;
+              *) $0 help && exit 127;;
+              esac'';
+        };
+      };
+    });
+
+    formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
   };
   # vim:sts=2:et:ft=nix:fdm=indent:fdl=0:fcl=all:fdo=all
 }
