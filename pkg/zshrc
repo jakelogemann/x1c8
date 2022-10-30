@@ -13,8 +13,6 @@
 #                                       "Y88P"                                 #
 #===============================================================================
 
-export EDITOR="${EDITOR:-nvim}"
-
 #========================================================================
 
 function dir-exists(){ test -d "$1"; }
@@ -260,7 +258,7 @@ bindkey -M viins '^[[1;5D' backward-word
 bindkey -M vicmd '^[[1;5D' backward-word
 
 bindkey      '\ew' kill-region # kill from the cursor to the mark.
-bindkey       '^r' history-incremental-search-backward      # [Ctrl-r] - Search backward incrementally for a specified string. The string may begin with ^ to anchor the search to the beginning of the line.
+# bindkey       '^r' history-incremental-search-backward      # [Ctrl-r] - Search backward incrementally for a specified string. The string may begin with ^ to anchor the search to the beginning of the line.
 bindkey ' ' magic-space # [Space] - history expansion
 bindkey '\C-x\C-e' edit-command-line # Edit the current command line in $EDITOR
 bindkey "\C-x\C-x" zle-run-navi

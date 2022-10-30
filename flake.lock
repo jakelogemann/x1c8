@@ -1,22 +1,5 @@
 {
   "nodes": {
-    "AstroNvim": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1666289306,
-        "narHash": "sha256-rw29hZKFklXdeA3viyYuHH92aaTmmuzdmrM/EbsFpSQ=",
-        "owner": "astronvim",
-        "repo": "astronvim",
-        "rev": "5288bad46858f15f2290aeb3d09c8bd8e58b7882",
-        "type": "github"
-      },
-      "original": {
-        "owner": "astronvim",
-        "ref": "v2.4.2",
-        "repo": "astronvim",
-        "type": "github"
-      }
-    },
     "blocklists": {
       "flake": false,
       "locked": {
@@ -56,11 +39,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1666972106,
-        "narHash": "sha256-xW2rMDSZYC1ngV7jYVmzWUUqz1UkyTa0aXJY4wYDFVI=",
+        "lastModified": 1667337321,
+        "narHash": "sha256-PztPDO7KJ/FW2bXvabVOP3gpzMZ+W4sY1+Ut/f0mkEI=",
         "owner": "digitalocean",
         "repo": "cthulhu",
-        "rev": "2c49019005b73c01258654fec30ed04f84b456ea",
+        "rev": "a1161897c9da5610b920464e36b9f025c33d41cb",
         "type": "github"
       },
       "original": {
@@ -151,11 +134,11 @@
     },
     "flake-utils_2": {
       "locked": {
-        "lastModified": 1659877975,
-        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
+        "lastModified": 1667077288,
+        "narHash": "sha256-bdC8sFNDpT0HK74u9fUkpbf1MEzVYJ+ka7NXCdgBoaA=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
+        "rev": "6ee9ebb6b1ee695d2cacc4faa053a7b9baa76817",
         "type": "github"
       },
       "original": {
@@ -264,11 +247,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1666903647,
-        "narHash": "sha256-sFI1Gh9DTGzHnBINondupUGYbe+T0wZcpcZjkW0qffM=",
+        "lastModified": 1667410913,
+        "narHash": "sha256-5+S65dpXaIyMDeoPy823BzNH5HYY1wvZ6G+rzTnO8kY=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "213a06295dff96668a1d673b9fd1c03ce1de6745",
+        "rev": "f520832a47dbc24d1e2c4e4b9a3dbe910777d1a2",
         "type": "github"
       },
       "original": {
@@ -333,11 +316,11 @@
     },
     "nixos-hardware": {
       "locked": {
-        "lastModified": 1666873549,
-        "narHash": "sha256-a6Eu1Qv/EndjepSMja5SvcG+4vM5Rl2gzJD7xscRHss=",
+        "lastModified": 1667283320,
+        "narHash": "sha256-qHvB/6XBKVjjJJCUM+z6/t9HzUC7J55wdY3KJ/ZWSHo=",
         "owner": "nixos",
         "repo": "nixos-hardware",
-        "rev": "419dcc0ec767803182ed01a326f134230578bf60",
+        "rev": "18934557eeba8fa2e575b0fd4ab95186e2e3bde3",
         "type": "github"
       },
       "original": {
@@ -363,11 +346,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1666869603,
-        "narHash": "sha256-3V53or4Vpu4+LrGfGSh3T2V8+qf5RP6nRuex9GywkwE=",
+        "lastModified": 1667231093,
+        "narHash": "sha256-RERXruzBEBuf0c7OfZeX1hxEKB+PTCUNxWeB6C1jd8Y=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "2001e2b31c565bcdf7bc13062b8d7cfccaca05b8",
+        "rev": "d40fea9aeb8840fea0d377baa4b38e39b9582458",
         "type": "github"
       },
       "original": {
@@ -410,11 +393,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1666869603,
-        "narHash": "sha256-3V53or4Vpu4+LrGfGSh3T2V8+qf5RP6nRuex9GywkwE=",
+        "lastModified": 1667231093,
+        "narHash": "sha256-RERXruzBEBuf0c7OfZeX1hxEKB+PTCUNxWeB6C1jd8Y=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "2001e2b31c565bcdf7bc13062b8d7cfccaca05b8",
+        "rev": "d40fea9aeb8840fea0d377baa4b38e39b9582458",
         "type": "github"
       },
       "original": {
@@ -486,7 +469,6 @@
     },
     "root": {
       "inputs": {
-        "AstroNvim": "AstroNvim",
         "blocklists": "blocklists",
         "cicd": "cicd",
         "cthulhu": "cthulhu",
@@ -512,11 +494,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1666892809,
-        "narHash": "sha256-dbxXgE6uLQHb+LWJkZD3EkVI1/oMZdv2ZcpfdaPD8JA=",
+        "lastModified": 1667336084,
+        "narHash": "sha256-mfEvp9hRiH9ijQpdABDfbomgrDmub7n0C3PQqhGVhHU=",
         "owner": "digitalocean",
         "repo": "servicecatalog-snapshots",
-        "rev": "24b725111c88cc5605f43f7a5f0369a4b28ff780",
+        "rev": "fb3bfca920ccce36c25fa1b81b67a90070687ea0",
         "type": "github"
       },
       "original": {

@@ -8,108 +8,105 @@ user.firstName = "Jake"
 user.lastName = "Logemann"
 dns.v4.ns = ["10.124.57.141", "10.124.57.160"]
 packages.fonts = ["nerdfonts","dejavu_fonts", "terminus-nerdfont"]
-packages.global = [
-  "slack",
-  "pcmanfm", 
-  "_1password",
-  "_1password-gui",
-  "aide",
-  "alejandra",
-  "arandr",
-  "bat",
-  "bpftools",
-  "zstd",
-  "nerdctl",
-  "logseq",
-  "act", "actionlint",
-  "buildah",
-  "commitlint",
-  "coreutils",
-  "cue", "cuelsp", "cuetools", 
-  "cuelsp",
-  "delve",
-  "direnv",
-  "dmidecode",
-  "docker-credential-helpers",
-  "dogdns",
-  "expect",
-  "fd",
-  "file",
-  "firecracker",
-  "firefox",
-  "firefox-devedition-bin",
-  "flameshot",
-  "gh",
-  "git-cliff",
-  "glxinfo",
-  "gnugrep",
-  "gnumake",
-  "gnupg",
-  "gnused",
-  "gnutar",
-  "go",
-  "go-cve-search",
-  "godef",
-  "gofumpt",
-  "golangci-lint",
-  "golangci-lint-langserver",
-  "golint",
-  "gomod2nix",
-  "gopls",
-  "goreleaser",
-  "goss",
-  "graphviz",
-  "grpcurl",
-  "gum",
-  "hddtemp",
-  "ipmitool",
-  "jless",
-  "jq",
-  "k9s",
-  "kubectl",
-  "kitty",
-  "llvm",
-  "llvm-manpages",
-  "lsb-release",
-  "lsd",
-  "lsof",
-  "lynis",
-  "mtr",
-  "navi",
-  "neovim",
-  "nerdctl",
-  "ossec",
-  "packer",
-  "parallel",
-  "pass",
-  "pciutils",
-  "pinentry",
-  "pstree",
-  "psutils",
-  "qemu_full", 
-  "kitty", "kitty-themes",
-  "ranger",
-  "ripgrep",
-  "rustup",
-  "rusty-man",
-  "scrot",
-  "shellcheck",
-  "skim",
-  "skopeo",
-  "sysstat",
-  "topgrade",
-  "tree",
-  "unrar",
-  "unzip",
-  "usbutils",
-  "w3m",
-  "whois",
-  "wireguard-tools",
-  "wireshark",
-  "xbindkeys",
-  "xclip",
-  "xdotool",
-  "yubikey-manager",
-  "zip",
-  "zoxide",
+
+
+internalHostnames = [
+  "architecture",
+  "artifactory",
+  "artifactory-staging",
+  "atlantis",
+  "atlantis.s2r1",
+  "awx",
+  "awx-staging",
+  "cloud",
+  "cloud.s2r1",
+  "cloud.s2r1",
+  "concourse",
+  "concourse-staging",
+  "confluence",
+  "data",
+  "docc-getting-started",
+  "docc-user-guide",
+  "docc-web-ui",
+  "engineering",
+  "flipperui",
+  "flipperui.s2r1",
+  "github",
+  "github-backup",
+  "github-test",
+  "github-staging",
+  "godoc",
+  "grafana",
+  "grafana",
+  "grafana-backup",
+  "grafana.s2r1",
+  "jira",
+  "lbaasadmin",
+  "logs",
+  "logs.s2r1",
+  "looker",
+  "maintenances",
+  "maintenances.s2r1",
+  "netbox",
+  "observability",
+  "pandora",
+  "reservations.s2r1",
+  "servicecatalog",
+  "servicecatalog-staging",
+  "shipyard",
+  "vault-ui",
 ]
+
+[networking.hosts]
+"162.243.188.132" = ["vpn-nyc3.digitalocean.com"]
+"162.243.188.133" = ["coffee-nyc3.digitalocean.com"]
+"138.68.32.133" = ["coffee-sfo2.digitalocean.com"]
+"138.68.32.132" = ["vpn-sfo2.digitalocean.com"]
+# "10.38.5.231" = ["servicecatalog-staging.internal.digitalocean.com"]
+
+[[desktopItem]]
+name = "system-repl"
+desktopName = "System REPL"
+comment = "Interactive 'System' Shell"
+exec = "kitty --hold system repl"
+
+[[desktopItem]]
+name = "system-edit"
+desktopName = "System Edit"
+comment = "Edit the current system's configuration"
+exec = "kitty -1 --instance-group=system-edit system edit"
+
+[[desktopItem]]
+name = "system-switch"
+desktopName = "System Switch"
+exec = "kitty --hold -1 --instance-group=system-build sudo system switch"
+
+[[desktopItem]]
+name = "system-build"
+desktopName = "System Build"
+exec = "kitty --hold -1 --instance-group=system-build system build"
+
+[[desktopItem]]
+name = "system-options"
+desktopName = "System Options Document"
+exec = "kitty w3m file:///run/current-system/sw/share/doc/nixos/options.html"
+
+[[desktopItem]]
+name = "sway"
+desktopName = "Launch Sway"
+exec = "sway"
+
+[[desktopItem]]
+name = "ghe-cicd"
+desktopName = "Repo: CI/CD"
+exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cicd"
+
+[[desktopItem]]
+name = "ghe-backstage-app"
+desktopName = "Repo: Backstage (ServiceCatalog)"
+exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/backstage-app"
+
+[[desktopItem]]
+name = "ghe-cthulhu"
+desktopName = "Repo: Cthulhu"
+exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cthulhu/blob/master/docode/src/do"

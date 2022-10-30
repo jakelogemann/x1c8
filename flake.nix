@@ -29,14 +29,6 @@
       flake = false;
     };
 
-    AstroNvim = {
-      type = "github";
-      owner = "astronvim";
-      repo = "astronvim";
-      ref = "v2.4.2";
-      flake = false;
-    };
-
     cthulhu = {
       type = "github";
       host = "github.internal.digitalocean.com";
@@ -137,92 +129,129 @@
     prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
   in {
     overlays = {
-      gomod2nix = self.inputs.gomod2nix.overlays.default;
-      my-nvim = next: prev: {
-        AstroNvim = prev.neovim.override {
-          extraName = "-AstroNvim";
-          viAlias = true;
-          vimAlias = true;
-          extraLuaPackages = pkgs:
-            with pkgs; [
-              luarocks-nix
-            ];
+      custom = next: prev: let
+        callPackage = prev.lib.callPackageWith (prev // {inherit self prefs;});
+      in rec {
+        gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
+        neovim = callPackage ./pkg/nvim {};
+
+        my-rustools = prev.symlinkJoin {
+          name = "my-rustools";
+          paths = with prev; [
+            llvm
+            llvm-manpages
+            rustup
+            rusty-man
+          ];
         };
 
-        neovim = prev.neovim.override {
-          extraName = "-jlogemann";
-          viAlias = true;
-          vimAlias = true;
-          extraLuaPackages = pkgs:
-            with pkgs; [
-              luarocks-nix
-            ];
-          configure = {
-            customRC = "\nluafile ${./pkg/nvim.lua}\n";
-            packages.default = with prev.vimPlugins; {
-              start = [
-                alpha-nvim
-                cmp-buffer
-                cmp-calc
-                cmp-emoji
-                cmp-nvim-lsp
-                cmp-omni
-                cmp-path
-                cmp-spell
-                cmp-treesitter
-                copilot-vim
-                editorconfig-nvim
-                feline-nvim
-                gitsigns-nvim
-                i3config-vim
-                neorg
-                nord-nvim
-                nvim-cmp
-                nvim-cursorline
-                nvim-dap
-                nvim-dap-ui
-                nvim-lspconfig
-                nvim-web-devicons
-                plenary-nvim
-                telescope-nvim
-                trouble-nvim
-                vim-automkdir
-                vim-caddyfile
-                vim-concourse
-                vim-cue
-                vim-easy-align
-                vim-gnupg
-                vim-go
-                vim-hcl
-                vim-lastplace
-                vim-nix
-                which-key-nvim
-                onedarkpro-nvim
+        my-x11tools = prev.symlinkJoin {
+          name = "my-x11tools";
+          paths = with prev; [
+            scrot
+            _1password-gui
+            arandr
+            slack
+            xbindkeys
+            xclip
+            xdotool
+            kitty
+            kitty-themes
+            logseq
+            firefox
+            firefox-devedition-bin
+            flameshot
+          ];
+        };
 
-                (nvim-treesitter.withPlugins (p:
-                  builtins.map (n: p."tree-sitter-${n}") [
-                    "bash"
-                    "c"
-                    "comment"
-                    "cpp"
-                    "css"
-                    "go"
-                    "html"
-                    "json"
-                    "lua"
-                    "make"
-                    "markdown"
-                    "nix"
-                    "python"
-                    "ruby"
-                    "rust"
-                    "toml"
-                    "vim"
-                    "yaml"
-                  ]))
-              ];
-            };
-          };
+        my-virtools = prev.symlinkJoin {
+          name = "my-virtools";
+          paths = with prev; [
+            act
+            actionlint
+            buildah
+            docker-credential-helpers
+            firecracker
+            k9s
+            kubectl
+            nerdctl
+            packer
+            qemu_full
+            skopeo
+          ];
+        };
+
+        my-systools = prev.symlinkJoin {
+          name = "my-systools";
+          paths = with prev; [
+            bpftools
+            dmidecode
+            dnsutils
+            dogdns
+            glxinfo
+            hddtemp
+            ipmitool
+            lsb-release
+            lsof
+            lynis
+            mtr
+            pciutils
+            pinentry
+            pstree
+            psutils
+            shellcheck
+            sysstat
+            tree
+            usbutils
+            whois
+            wireguard-tools
+          ];
+        };
+
+        my-commontools = prev.symlinkJoin {
+          name = "my-commontools";
+          paths = with prev; [
+            dasel
+            bat
+            coreutils
+            skim
+            cue
+            ranger
+            ripgrep
+            file
+            gh
+            git-cliff
+            gnugrep
+            gnumake
+            gnupg
+            gnused
+            gnutar
+            gum
+            jq
+            lsd
+            unrar
+            unzip
+            zip
+          ];
+        };
+
+        my-gotools = prev.symlinkJoin {
+          name = "my-gotools";
+          paths = with prev; [
+            go
+            grpcurl
+            gomod2nix
+            go-cve-search
+            godef
+            gofumpt
+            golangci-lint
+            golangci-lint-langserver
+            golint
+            gomod2nix
+            gopls
+            goreleaser
+            goss
+          ];
         };
       };
       /*
@@ -231,6 +260,68 @@
       do-internal = next: prev:
         with prev; {
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
+
+          buildCthulhuBins = {
+            cthulhu ? self.inputs.cthulhu,
+            name ? "cthulhu-bins",
+            subPackages ? [
+              "doge/dorpc/protoc-gen-dorpc"
+              "teams/compute/orca2/cmd/explainer"
+              "teams/compute/orca2/cmd/orca2ctl"
+              "teams/delivery/docc/cmd/docc"
+              "teams/delivery/artifact/cmd/artifactctl"
+              "teams/droplet/service/cmd/dropletctl"
+              "teams/security/certtool"
+              "teams/paas/apps/cmd/appctl"
+              "teams/compute/k8saas/cmd/k8saasctl"
+              "teams/compute/k8saas/cmd/k8saas-clusterlint"
+              "teams/compute/k8saas/cmd/templatectl"
+              "teams/compute/rmetadata/cmd/rmetadatactl"
+            ],
+            tags ? [
+              "cdep"
+              "ceph"
+              "ceph_preview"
+              "czmq"
+              "guestfs"
+              "nautilus"
+              "rabbit"
+              "without_lxc"
+            ],
+          }:
+            buildGoModule rec {
+              inherit name subPackages tags;
+              ldflags = [
+                "-s"
+                "-w"
+                "-X do/doge/version.commit=${version}"
+                "-X do/doge/version.gitTreeState=clean"
+              ];
+              src = builtins.toString cthulhu;
+              modRoot = "${src}/docode/src/do";
+              vendorSha256 = null;
+              version =
+                if cthulhu ? "shortRev"
+                then cthulhu.shortRev
+                else if cthulhu ? "rev"
+                then cthulhu.rev
+                else "dev";
+              doCheck = false;
+              nativeBuildInputs = lib.concatLists [
+                [cacert git gnumake jq pkg-config zlib rdkafka]
+                (lib.optionals (!stdenv.isDarwin) [ceph-dev.lib])
+              ];
+              overrideModAttrs = _: rec {
+                CGO_ENABLED = "0";
+                GO111MODULE = "on";
+                GOPROXY = "direct";
+                GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+                GOFLAGS = "-mod=vendor -trimpath";
+                GONOPROXY = GOPRIVATE;
+                GONOSUMDB = GOPRIVATE;
+              };
+            };
+
           do-internal = prev.symlinkJoin rec {
             name = "do-internal";
             paths = with self.inputs.do-nixpkgs.packages.${prev.system};
@@ -331,6 +422,8 @@
               hardware.gpgSmartcards.enable = true;
               hardware.ksm.enable = true;
               hardware.mcelog.enable = true;
+              time.hardwareClockInLocalTime = true;
+              time.timeZone = "America/New_York";
 
               boot = {
                 binfmt.emulatedSystems = ["aarch64-linux"];
@@ -405,10 +498,18 @@
                   rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
                 };
                 variables = {
-                  EDITOR = "nvim";
+                  EDITOR = lib.getExe pkgs.neovim;
                   BAT_STYLE = "header-filename,grid";
-                  BROWSER = "firefox";
+                  BROWSER = lib.getExe pkgs.firefox-devedition-bin;
                   PAGER = lib.getExe pkgs.bat;
+                  GO111MODULE = "on";
+                  GOFLAGS = "-mod=vendor";
+                  GONOPROXY = "*.internal.digitalocean.com,github.com/digitalocean";
+                  GONOSUMDB = "*.internal.digitalocean.com,github.com/digitalocean";
+                  GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+                  GOPROXY = "direct";
+                  GOSUMDB = "sum.golang.org";
+                  CGO_ENABLED = "0";
                 };
               };
 
@@ -473,6 +574,7 @@
               };
 
               programs = {
+                kbdlight.enable = true;
                 iftop.enable = true;
                 light.enable = true;
                 iotop.enable = true;
@@ -484,6 +586,7 @@
 
                 git.config = {
                   alias.aliases = "config --show-scope --get-regexp alias";
+                  alias.unstage = "restore --staged";
                   alias.amend = "commit --amend";
                   alias.amendall = "commit --amend --all";
                   alias.amendit = "commit --amend --no-edit";
@@ -500,8 +603,9 @@
                   core.ignorecase = true;
                   core.pager = lib.getExe pkgs.delta;
                   core.untrackedcache = true;
-                  credential."https://github.com".helper = "gh auth git-credential";
-                  credential."https://github.internal.digitalocean.com".helper = "ghe auth git-credential";
+                  credential."https://github.com".helper = "${lib.getExe pkgs.gh} auth git-credential";
+                  credential."https://github.*".helper = "${lib.getExe pkgs.gh} auth git-credential";
+                  credential."https://github.internal.digitalocean.com".helper = "${lib.getExe pkgs.gh} auth git-credential";
                   diff.bin.textconv = "hexdump -v -C";
                   diff.renames = "copies";
                   help.autocorrect = 1;
@@ -551,6 +655,8 @@
 
                 sway = {
                   enable = true;
+                  wrapperFeatures.base = true;
+                  wrapperFeatures.gtk = true;
                   extraPackages = with pkgs; [
                     swaylock
                     dmenu
@@ -570,13 +676,6 @@
                     # use this if they aren't displayed properly:
                     export _JAVA_AWT_WM_NONREPARENTING=1
                   '';
-                  wrapperFeatures.base = true;
-                  wrapperFeatures.gtk = true;
-                };
-
-                thunar = {
-                  enable = true;
-                  plugins = with pkgs.xfce; [thunar-archive-plugin thunar-volman];
                 };
 
                 zsh = {
@@ -629,14 +728,15 @@
 
               services = {
                 acpid.enable = true;
-                unclutter.enable = true;
+                dnscrypt-proxy2.enable = true;
                 earlyoom.enable = true;
                 earlyoom.freeMemThreshold = 10;
-                tlp.enable = true;
-                upower.enable = true;
                 fwupd.enable = true;
                 journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
                 journald.forwardToSyslog = false;
+                tlp.enable = true;
+                unclutter.enable = true;
+                upower.enable = true;
               };
 
               services.xserver = {
@@ -670,15 +770,61 @@
               virtualisation.podman.enable = true;
 
               systemd = {
-                # services.dnscrypt-proxy2.serviceConfig.StateDirectory = lib.mkForce "dnscrypt-proxy2";
                 services.systemd-udev-settle.enable = false;
                 services.NetworkManager-wait-online.enable = false;
                 services.systemd-networkd-wait-online.enable = false;
               };
 
-              environment.systemPackages =
-                (builtins.map (p: pkgs."${p}") prefs.packages.global)
-                ++ (with pkgs; [
+              environment.etc = {
+                "i3/config".text = builtins.readFile ./pkg/i3_config;
+                "sway/config".text = builtins.readFile ./pkg/sway_config;
+                "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
+                  "font_family DaddyTimeMono Nerd Font"
+                  "editor ${lib.getExe pkgs.neovim}"
+                ];
+              };
+
+              environment.systemPackages = lib.concatLists [
+                (builtins.map (entry:
+                  pkgs.makeDesktopItem {
+                    name = "internal-${entry}";
+                    desktopName = "Open ${entry}.internal.";
+                    exec = "xdg-open https://${entry}.internal.digitalocean.com";
+                  })
+                prefs.internalHostnames)
+                (builtins.map (entry: pkgs.makeDesktopItem entry) prefs.desktopItem)
+                (builtins.map (p: pkgs."${p}") [
+                  "_1password"
+                  "aide"
+                  "alejandra"
+                  "commitlint"
+                  "cuelsp"
+                  "cuetools"
+                  "delve"
+                  "direnv"
+                  "expect"
+                  "fd"
+                  "gh-dash"
+                  "graphviz"
+                  "jless"
+                  "my-commontools"
+                  "my-gotools"
+                  "my-rustools"
+                  "my-systools"
+                  "my-virtools"
+                  "my-x11tools"
+                  "navi"
+                  "neovim"
+                  "ossec"
+                  "parallel"
+                  "pass"
+                  "topgrade"
+                  "w3m"
+                  "yubikey-manager"
+                  "zoxide"
+                  "zstd"
+                ])
+                (with pkgs; [
                   (pkgs.writeShellApplication {
                     name = "system";
                     runtimeInputs = with pkgs; [
@@ -689,19 +835,20 @@
                       nixos-rebuild
                     ];
                     text = ''
-                      [[ $# -gt 0 ]] || exec $0 help; cd "${prefs.repo.path}";
+                      [[ $# -gt 0 ]] || exec $0 help;
                       case $1 in
-                        bin) echo "/run/current-system/sw/bin";;
-                        bins) lsd --no-symlink "$($0 bin)";;
-                        boot|build|build-vm*|dry-activate|dry-build|test|switch) nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-                        edit) [[ $UID -ne 0 ]] && $EDITOR flake.nix;;
-                        flake) [[ $UID -ne 0 ]] && nix "$@";;
-                        git) [[ $UID -ne 0 ]] && exec "$@";;
-                        help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-                        pager) $0 tree | bat --file-name="$0 $*" --plain;;
-                        repo|path|dir) pwd;;
-                        tree) lsd --tree --no-symlink;;
-                        shutdown|poweroff|reboot|journalctl) exec "$@";;
+                      bin) echo "/run/current-system/sw/bin";;
+                      bins) lsd --no-symlink "$($0 bin)";;
+                      boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
+                      develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
+                      edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR flake.nix;;
+                      flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
+                      git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
+                      help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
+                      pager) $0 tree | bat --file-name="$0 $*" --plain;;
+                      repo|path|dir) echo "${prefs.repo.path}";;
+                      tree) lsd --tree --no-symlink;;
+                      shutdown|poweroff|reboot|journalctl) exec "$@";;
                         repl) nix repl ${(pkgs.writeText "repl.nix" ''
                           let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
                            inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
@@ -727,35 +874,8 @@
                       "\"$@\""
                     ];
                   })
-
-                  (pkgs.writeShellApplication {
-                    name = "alacritty";
-                    runtimeInputs = [alacritty terminus-nerdfont xcwd];
-                    text = lib.concatStringsSep " " [
-                      "exec alacritty"
-                      "--working-directory=\"$(xcwd)\""
-                      "--config-file='${writeText "alacritty.yml" (builtins.toJSON rec {
-                        cursor.style.blinking = "On";
-                        cursor.style.shape = "block";
-                        env.TERM = "xterm-new";
-                        font.builtin_box_drawing = false;
-                        font.glyph_offset.x = -1;
-                        font.glyph_offset.y = -1;
-                        font.normal.family = "DaddyTimeMono Nerd Font";
-                        font.offset.x = 0;
-                        font.offset.y = 1;
-                        font.size = 9.5;
-                        live_config_reload = false;
-                        mouse.hide_when_typing = true;
-                        selection.save_to_clipboard = true;
-                        window.dynamic_padding = true;
-                        window.padding.x = 5;
-                        window.padding.y = 5;
-                      })}'"
-                      "\"$@\""
-                    ];
-                  })
-                ]);
+                ])
+              ];
 
               # This value determines the NixOS release from which the default
               # settings for stateful data, like file locations and database versions
@@ -778,127 +898,132 @@
         ...
       }:
         lib.mkIf config.services.dnscrypt-proxy2.enable {
+          networking.nameservers = ["127.0.0.1"];
+          # networking.resolvconf.enable = lib.mkForce false;
+          networking.networkmanager.dns = lib.mkForce "none";
+          # networking.useHostResolvConf = true;
+          systemd.services.dnscrypt-proxy2.serviceConfig.StateDirectory = lib.mkForce "dnscrypt-proxy2";
           services.dnscrypt-proxy2.settings = {
-            # Immediately respond to A and AAAA queries for host names without a
-            # domain name.
-            block_unqualified = true;
-            # Immediately respond to queries for local zones instead
-            # of leaking them to upstream resolvers (always causing errors or
-            # timeouts).
-            block_undelegated = true;
-            # ------------------------
-            server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
-            ipv6_servers = true;
-            ipv4_servers = true;
-            use_syslog = true;
-            require_nolog = true;
-            require_nofilter = false;
-            edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
-            require_dnssec = true;
-            blocked_query_response = "refused";
+            # Server Controls
+            # ----------------
             block_ipv6 = false;
+            block_undelegated = true;
+            block_unqualified = true;
+            blocked_query_response = "refused";
+            edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
+            ipv4_servers = true;
+            ipv6_servers = true;
+            require_dnssec = true;
+            require_nofilter = false;
+            require_nolog = true;
+            server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
+            # Caching & TTLs
+            # --------------
+            cloak_ttl = 600;
+            cache_size = 4096;
+            cache_min_ttl = 2400;
+            cache_max_ttl = 86400;
+            cache_neg_min_ttl = 60;
+            cache_neg_max_ttl = 600;
+            # Logging Controls
+            # ----------------
+            use_syslog = true;
+            # query_log.file = "/dev/stdout";
+            # query_log.ignored_qtypes = ["DNSKEY"];
+            # blocked_names.log_file = "/dev/stdout";
+            # allowed_ips.log_file = "/dev/stdout";
+            # blocked_ips.log_file = "/dev/stdout";
+            # allowed_names.log_file = "/dev/stdout";
 
-            allowed_ips.allowed_ips_file =
+            allowed_ips.allowed_ips_file = pkgs.writeText "allowed_ips" (lib.concatStringsSep "\n" [
               /*
-              Allowed IP lists support the same patterns as IP blocklists
-              If an IP response matches an allow ip entry, the corresponding session
+              Allowed IP lists support the same patterns as IP blocklists If an
+              IP response matches an allow ip entry, the corresponding session
               will bypass IP filters.
 
-              Time-based rules are also supported to make some websites only accessible at specific times of the day.
+              Time-based rules are also supported to make some websites only
+              accessible at specific times of the day.
               */
-              pkgs.writeText "allowed_ips" ''
-              '';
+            ]);
 
-            cloaking_rules =
+            allowed_names.allowed_names_file = pkgs.writeText "allowed_names" (lib.concatStringsSep "\n" []);
+            blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" (lib.concatStringsSep "\n" []);
+
+            cloaking_rules = pkgs.writeText "cloaking_rules" (lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "${name}  ${value}") {
               /*
               Cloaking returns a predefined address for a specific name.
               In addition to acting as a HOSTS file, it can also return the IP address
               of a different name. It will also do CNAME flattening.
               */
-              pkgs.writeText "cloaking_rules" ''
-                # The following rules force "safe" (without adult content) search
-                # results from Google, Bing and YouTube.
-                  www.google.*             forcesafesearch.google.com
-                  www.bing.com             strict.bing.com
-                  =duckduckgo.com          safe.duckduckgo.com
-                  www.youtube.com          restrictmoderate.youtube.com
-                  m.youtube.com            restrictmoderate.youtube.com
-                  youtubei.googleapis.com  restrictmoderate.youtube.com
-                  youtube.googleapis.com   restrictmoderate.youtube.com
-                  www.youtube-nocookie.com restrictmoderate.youtube.com
-              '';
+              "www.google.*" = "forcesafesearch.google.com";
+              "www.bing.com" = "strict.bing.com";
+              "=duckduckgo.com" = "safe.duckduckgo.com";
+            }));
 
             forwarding_rules = let
-              iDNS = nixpkgs.lib.concatStringsSep "," prefs.dns.v4.ns;
+              iDNS = lib.concatStringsSep "," prefs.dns.v4.ns;
             in
-              pkgs.writeText "forwarding_rules" ''
-                do.co ${iDNS}
-                *.do.co ${iDNS}
-                internal.digitalocean.com ${iDNS}
-                *.internal.digitalocean.com ${iDNS}
-                10.in.arpa ${iDNS}
-              '';
-            cloak_ttl = 600;
-            allowed_names.allowed_names_file = pkgs.writeText "allowed_names" "";
-            # blocked_names.blocked_names_file =
-            #   pkgs.writeText "blocked_names"
-            #   (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
+              pkgs.writeText "forwarding_rules" (lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "${name}  ${value}") {
+                "do.co" = iDNS;
+                "*.do.co" = iDNS;
+                "internal.digitalocean.com" = iDNS;
+                "*.internal.digitalocean.com" = iDNS;
+                "10.in.arpa" = iDNS;
+              }));
 
-            blocked_ips.blocked_ips_file = pkgs.writeText "blocked_ips" "";
-            query_log.file = "/dev/stdout";
-            query_log.ignored_qtypes = ["DNSKEY"];
-            blocked_names.log_file = "/dev/stdout";
-            allowed_ips.log_file = "/dev/stdout";
-            blocked_ips.log_file = "/dev/stdout";
-            allowed_names.log_file = "/dev/stdout";
-            sources = {
-              public-resolvers = {
-                urls = [
-                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
-                  "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
-                ];
-                cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
-                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                refresh_delay = 72;
-                prefix = "";
-              };
-              relays = {
-                urls = [
-                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
-                  "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
-                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
-                  "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
-                ];
-                cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
-                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                refresh_delay = 72;
-                prefix = "";
-              };
-              odoh-servers = {
-                urls = [
-                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
-                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
-                ];
-                cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
-                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                refresh_delay = 24;
-                prefix = "";
-              };
-              odoh-relays = {
-                urls = [
-                  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
-                  "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                  "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-                  "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
-                ];
-                cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
-                minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
-                refresh_delay = 24;
-                prefix = "";
-              };
+            sources.public-resolvers = {
+              urls = [
+                "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+                "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+              ];
+              cache_file = "/var/lib/dnscrypt-proxy2/public-resolvers.md";
+              minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+              refresh_delay = 72;
+              prefix = "";
             };
+
+            sources.relays = {
+              urls = [
+                "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+                "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+                "https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md"
+                "https://download.dnscrypt.net/resolvers-list/v3/relays.md"
+              ];
+              cache_file = "/var/lib/dnscrypt-proxy2/relays.md";
+              minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+              refresh_delay = 72;
+              prefix = "";
+            };
+
+            sources. odoh-servers = {
+              urls = [
+                "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+                "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+                "https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md"
+              ];
+              cache_file = "/var/lib/dnscrypt-proxy2/odoh-servers.md";
+              minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+              refresh_delay = 24;
+              prefix = "";
+            };
+
+            sources.odoh-relays = {
+              urls = [
+                "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+                "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                "https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+                "https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md"
+              ];
+              cache_file = "/var/lib/dnscrypt-proxy2/odoh-relays.md";
+              minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+              refresh_delay = 24;
+              prefix = "";
+            };
+
+            blocked_names.blocked_names_file =
+              pkgs.writeText "blocked_names"
+              (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
           };
         };
       nixConfig = {
@@ -932,8 +1057,8 @@
         ...
       }: {
         services.emacs = {
-          enable = true;
-          install = true;
+          enable = false;
+          install = false;
           package = pkgs.emacsWithPackages (epkgs: [
             epkgs.melpaStablePackages.magit
           ]);
@@ -959,19 +1084,15 @@
         services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         system.nixos.tags = ["digitalocean"];
-        networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
-        networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
-        networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
-        networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
-        # networking.hosts."10.38.5.231" = ["servicecatalog-staging.internal.digitalocean.com"];
+        networking.hosts = prefs.networking.hosts;
         environment.systemPackages = [pkgs.do-internal];
       };
 
       /*
-      lenovo-x1c8 contains the configuration that is specific to my Lenovo
+      x1c8 contains the configuration that is specific to my Lenovo
       X1 Carbon (8th gen), but generic enough to perhaps reuse.
       */
-      lenovo-x1c8 = {
+      x1c8 = {
         config,
         lib,
         pkgs,
@@ -1051,14 +1172,12 @@
         nix.settings.trusted-users = [prefs.user.login];
         users.groups.${prefs.user.login}.gid = 990;
         system.nixos.tags = [prefs.user.login];
+        security.pam.u2f.enable = true;
+        security.pam.u2f.control = "sufficient";
 
-        security.pam.u2f = {
-          enable = true;
-          control = "sufficient";
-          authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
-            "${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
-          ]);
-        };
+        security.pam.u2f.authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
+          "${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
+        ]);
 
         security.sudo.extraRules = [
           {
@@ -1102,7 +1221,7 @@
     };
 
     packages = self.lib.withPkgs (pkgs: {
-      inherit (pkgs) AstroNvim do-internal gomod2nix;
+      inherit (pkgs) neovim do-internal gomod2nix;
     });
 
     apps = self.lib.withPkgs (pkgs: {
@@ -1119,10 +1238,6 @@
         drv = pkgs.neovim;
         exePath = "/bin/nvim";
       };
-      AstroNvim = self.lib.mkApp {
-        drv = pkgs.AstroNvim;
-        exePath = "/bin/nvim";
-      };
       default = self.lib.mkApp {
         drv = pkgs.writeShellApplication {
           name = "system";
@@ -1134,17 +1249,19 @@
             nixos-rebuild
           ];
           text = ''
-            [[ $# -gt 0 ]] || exec $0 help; cd "${prefs.repo.path}";
+            [[ $# -gt 0 ]] || exec $0 help;
             case $1 in
             bin) echo "/run/current-system/sw/bin";;
             bins) lsd --no-symlink "$($0 bin)";;
-            boot|build|build-vm*|dry-activate|dry-build|test|switch) nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-            edit) [[ $UID -ne 0 ]] && $EDITOR flake.nix;;
-            flake) [[ $UID -ne 0 ]] && nix "$@";;
-            git) [[ $UID -ne 0 ]] && exec "$@";;
+            boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
+            develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
+            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR flake.nix;;
+            flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
+            update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
+            git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
             help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
             pager) $0 tree | bat --file-name="$0 $*" --plain;;
-            repo|path|dir) pwd;;
+            repo|path|dir) echo "${prefs.repo.path}";;
             tree) lsd --tree --no-symlink;;
             shutdown|poweroff|reboot|journalctl) exec "$@";;
             repl) nix repl ${(pkgs.writeText "repl.nix" ''
@@ -1163,6 +1280,16 @@
     });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
+
+    devShells = self.lib.withPkgs (pkgs:
+      with pkgs; rec {
+        go = mkShell {
+          name = "my-gotools";
+          paths = [my-commontools my-gotools];
+        };
+
+        default = go;
+      });
   };
   # vim:sts=2:et:ft=nix:fdm=indent:fdl=0:fcl=all:fdo=all
 }
