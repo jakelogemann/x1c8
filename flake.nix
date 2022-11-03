@@ -340,20 +340,25 @@
                 })
                 (prev.writeShellApplication {
                   name = "vpn";
-                  runtimeInputs = with prev; [coreutils gnused openconnect];
+                  runtimeInputs = with prev; [pass coreutils gnused openconnect];
                   text = let
                     _a = "$";
-                    _c = "{cmd[@]}";
                   in ''
-                    declare -a cmd=( openconnect )
-                    cmd+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
-                    cmd+=( -F _challenge:passwd=1 )
-                    cmd+=( --protocol=gp )
-                    cmd+=( --non-inter --background --pid-file=/run/vpn.pid )
-                    cmd+=( --os=linux-64 )
-                    cmd+=( --passwd-on-stdin )
-                    cmd+=( -F _login:user="$1" "https://$2.digitalocean.com/ssl-vpn" )
-                    set -x; exec "${_a}${_c}"
+                    # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
+                    [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
+                    [[ -n "$USER" ]] || read -r -p "USER: " USER
+                    [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
+                    CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
+                    declare -a vpn_args=( --protocol=gp )
+                    vpn_args+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
+                    vpn_args+=( -F _challenge:passwd="$MFA" )
+                    vpn_args+=( --non-inter --background )
+                    vpn_args+=( --pid-file=/run/vpn.pid )
+                    vpn_args+=( --os=linux-64 )
+                    vpn_args+=( --passwd-on-stdin )
+                    vpn_args+=( -F _login:user="$USER" )
+                    vpn_args+=( "$CONNECT_URL" )
+                    exec sudo openconnect "${_a}{vpn_args[@]}"
                   '';
                 })
               ]
@@ -1196,7 +1201,7 @@
                   "system"
                   "systemd-cgls"
                   "systemd-cgtop"
-                  "vpn"
+                  "openconnect"
                   "dmesg"
                   "systemctl"
                 ]);
