@@ -3,11 +3,11 @@
     "blocklists": {
       "flake": false,
       "locked": {
-        "lastModified": 1666902449,
-        "narHash": "sha256-HB5dHf2Gxf5RaHNJgRWgP4yv9qqY2YmpjUHpLKBRWDk=",
+        "lastModified": 1667353268,
+        "narHash": "sha256-c1hxzRaGZgER/icyopI94XHnTyj0IGt0f4/0CG9naIc=",
         "owner": "stevenblack",
         "repo": "hosts",
-        "rev": "4e4077236545cfa20ff43e07bbd6b73018bc8021",
+        "rev": "e1bb5f08e6f9f4daef93cc327580a95f83959f38",
         "type": "github"
       },
       "original": {
@@ -39,11 +39,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1667337321,
-        "narHash": "sha256-PztPDO7KJ/FW2bXvabVOP3gpzMZ+W4sY1+Ut/f0mkEI=",
+        "lastModified": 1667511337,
+        "narHash": "sha256-nUeMnfOOE6wu+WJSF33Lg335Ywr8cYyjWHGKdGxLLOg=",
         "owner": "digitalocean",
         "repo": "cthulhu",
-        "rev": "a1161897c9da5610b920464e36b9f025c33d41cb",
+        "rev": "260d495cfa3514af016f7cb252e1922f3adf9f13",
         "type": "github"
       },
       "original": {
@@ -85,11 +85,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1666795113,
-        "narHash": "sha256-dfi+q9Yfnh4kaASEVLYERRIMPQ/05AvWalF9noA1628=",
+        "lastModified": 1667337616,
+        "narHash": "sha256-AiBG/UMuUDPpc2v5MjMAC2JTNhAndVmKqpj4ACmH7Xw=",
         "ref": "master",
-        "rev": "88ac9fdf05e0e7f08a87ada627fbac278b6bbe2a",
-        "revCount": 131,
+        "rev": "cdcff4157987e7b9f362ef2b092cfe830125a20e",
+        "revCount": 132,
         "type": "git",
         "url": "https://github.internal.digitalocean.com/digitalocean/do-nixpkgs"
       },
@@ -134,11 +134,11 @@
     },
     "flake-utils_2": {
       "locked": {
-        "lastModified": 1667077288,
-        "narHash": "sha256-bdC8sFNDpT0HK74u9fUkpbf1MEzVYJ+ka7NXCdgBoaA=",
+        "lastModified": 1667395993,
+        "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "6ee9ebb6b1ee695d2cacc4faa053a7b9baa76817",
+        "rev": "5aed5285a952e0b949eb3ba02c12fa4fcfef535f",
         "type": "github"
       },
       "original": {
@@ -247,11 +247,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1667468181,
-        "narHash": "sha256-806/nrDW6e7bl4/oJEdAykYz/NaBuTUi7EUYArw2oic=",
+        "lastModified": 1667574732,
+        "narHash": "sha256-73TVk3uSQOja6Q/5OuNcpcqwo6+SMzJPRtYAjU0rBx4=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "93335810751f0404fe424e61ad58bc8e94bf8e9d",
+        "rev": "b764068a506c6f70dba998efa0e7fcb99cb4deb2",
         "type": "github"
       },
       "original": {
@@ -346,11 +346,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1667231093,
-        "narHash": "sha256-RERXruzBEBuf0c7OfZeX1hxEKB+PTCUNxWeB6C1jd8Y=",
+        "lastModified": 1667426640,
+        "narHash": "sha256-zJFPcWL9i0Y1BqzqEa8RKx+SiUgupHhYqPDCaFmlBpw=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "d40fea9aeb8840fea0d377baa4b38e39b9582458",
+        "rev": "636051e353461f073ac55d5d42c1ed062a345046",
         "type": "github"
       },
       "original": {
@@ -393,11 +393,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1667231093,
-        "narHash": "sha256-RERXruzBEBuf0c7OfZeX1hxEKB+PTCUNxWeB6C1jd8Y=",
+        "lastModified": 1667426640,
+        "narHash": "sha256-zJFPcWL9i0Y1BqzqEa8RKx+SiUgupHhYqPDCaFmlBpw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "d40fea9aeb8840fea0d377baa4b38e39b9582458",
+        "rev": "636051e353461f073ac55d5d42c1ed062a345046",
         "type": "github"
       },
       "original": {
@@ -494,11 +494,11 @@
       "flake": false,
       "locked": {
         "host": "github.internal.digitalocean.com",
-        "lastModified": 1667336084,
-        "narHash": "sha256-mfEvp9hRiH9ijQpdABDfbomgrDmub7n0C3PQqhGVhHU=",
+        "lastModified": 1667510582,
+        "narHash": "sha256-q1JuUDj72GJkFshnEpLKAWUUfS2CUKaANuyVuHLnopQ=",
         "owner": "digitalocean",
         "repo": "servicecatalog-snapshots",
-        "rev": "fb3bfca920ccce36c25fa1b81b67a90070687ea0",
+        "rev": "f085adbd075935bfb0a9d01fae7d21bfe0bc0c00",
         "type": "github"
       },
       "original": {

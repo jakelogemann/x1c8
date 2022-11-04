@@ -32,7 +32,7 @@ bindsym Mod4+6 workspace number 6
 bindsym Mod4+7 workspace number 7
 bindsym Mod4+8 workspace number 8
 bindsym Mod4+9 workspace number 9
-bindsym Mod4+Control+Shift+q exec i3-msg exit
+bindsym Mod4+Control+Shift+q exec swaymsg exit
 bindsym Mod4+Control+a mode autorandr
 bindsym Mod4+Ctrl+Down resize grow height 4px or 4 ppt
 bindsym Mod4+Ctrl+Left resize shrink width 4px or 4 ppt
@@ -74,9 +74,9 @@ bindsym Mod4+Up focus up
 bindsym Mod4+b bar mode toggle
 bindsym Mod4+comma mode desktop
 bindsym Mod4+d exec dmenu_run
-bindsym Mod4+e exec kitty vim
-bindsym Mod4+Shift+f exec kitty ranger
-bindsym Mod4+f exec thunar
+bindsym Mod4+e exec kitty nvim
+bindsym Mod4+Shift+f exec thunar
+bindsym Mod4+f exec kitty ranger
 bindsym Mod4+grave workspace back_and_forth
 bindsym Mod4+h focus left
 bindsym Mod4+i focus child
@@ -90,7 +90,7 @@ bindsym Mod4+r exec rofi -show drun
 bindsym Mod4+t exec kitty
 bindsym Mod4+u mode resize
 bindsym Mod4+v split v
-bindsym Mod4+w exec firefox
+bindsym Mod4+w exec firefox-devedition
 bindsym Pause mode display
 bindsym XF86AudioLowerVolume exec amixer set Master 4%-
 bindsym XF86AudioMute exec amixer set Master toggle
@@ -102,9 +102,9 @@ bindsym XF86MonBrightnessUp exec xbacklight -inc 2
 mode "desktop" {
   bindsym Escape mode default
   bindsym Return mode default
-  bindsym Shift+q i3-msg exit
-  bindsym Shift+r i3-msg restart
-  bindsym r i3-msg reload
+  bindsym Shift+q swaymsg exit
+  bindsym Shift+r swaymsg restart
+  bindsym r swaymsg reload
 }
 
 mode "display" {
@@ -143,5 +143,36 @@ mode "resize" {
   bindsym Up resize shrink height 10 px or 10 ppt
 }
 
-exec_always --no-startup-id exec i3-msg workspace 1
-exec_always --no-startup-id systemctl --user restart polybar.service
+bar {
+    status_command i3status-rs /etc/sway/status.toml
+    gaps 2 0 0 0
+    position top
+    pango_markup enabled
+    output *
+    tray_output *
+    strip_workspace_name no
+    strip_workspace_numbers no
+    wrap_scroll yes
+    workspace_buttons yes
+    workspace_min_width 12
+}
+
+output * bg #000000 solid_color
+
+output eDP-1 {
+  pos 0 0
+  max_render_time 5
+  mode 1920x1080@59.999Hz
+}
+
+input type:touchpad {
+    tap enabled
+    drag enabled
+    dwt enabled
+}
+
+input * {
+    xkb_layout "us"
+    xkb_options "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp"
+}
+

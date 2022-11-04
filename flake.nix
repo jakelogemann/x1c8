@@ -145,25 +145,6 @@
           ];
         };
 
-        my-x11tools = prev.symlinkJoin {
-          name = "my-x11tools";
-          paths = with prev; [
-            scrot
-            _1password-gui
-            arandr
-            slack
-            xbindkeys
-            xclip
-            xdotool
-            kitty
-            kitty-themes
-            logseq
-            firefox
-            firefox-devedition-bin
-            flameshot
-          ];
-        };
-
         my-virtools = prev.symlinkJoin {
           name = "my-virtools";
           paths = with prev; [
@@ -212,6 +193,10 @@
           name = "my-commontools";
           paths = with prev; [
             dasel
+            direnv
+            navi
+            starship
+            zoxide
             bat
             coreutils
             skim
@@ -254,10 +239,7 @@
           ];
         };
       };
-      /*
-      this is a wrapper around the do-nixpkgs repo (with my (experimental!) customizations).
-      */
-      do-internal = next: prev:
+      digitalocean = next: prev:
         with prev; {
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
 
@@ -352,12 +334,13 @@
                     declare -a vpn_args=( --protocol=gp )
                     vpn_args+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
                     vpn_args+=( -F _challenge:passwd="$MFA" )
-                    vpn_args+=( --non-inter --background )
+                    vpn_args+=( --background )
                     vpn_args+=( --pid-file=/run/vpn.pid )
                     vpn_args+=( --os=linux-64 )
                     vpn_args+=( --passwd-on-stdin )
                     vpn_args+=( -F _login:user="$USER" )
                     vpn_args+=( "$CONNECT_URL" )
+                    set -x
                     exec sudo openconnect "${_a}{vpn_args[@]}"
                   '';
                 })
@@ -578,6 +561,27 @@
                 wireless.interfaces = ["wlan0"];
               };
 
+              nix = {
+                daemonCPUSchedPolicy = "idle";
+                daemonIOSchedPriority = 5;
+                gc.automatic = true;
+                gc.dates = "daily";
+                optimise.automatic = true;
+                optimise.dates = ["daily"];
+                registry.nixpkgs.flake = self.inputs.nixpkgs;
+                settings.allow-dirty = true;
+                settings.auto-optimise-store = true;
+                settings.cores = 2;
+                settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
+                settings.log-lines = 50;
+                settings.max-free = 64 * 1024 * 1024 * 1024;
+                settings.system-features = ["kvm"];
+                settings.warn-dirty = false;
+              };
+
+              nixpkgs.config.allowUnfree = true;
+              nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
+
               programs = {
                 kbdlight.enable = true;
                 iftop.enable = true;
@@ -587,7 +591,6 @@
                 git.enable = true;
                 git.lfs.enable = true;
                 starship.enable = true;
-                xwayland.enable = true;
 
                 git.config = {
                   alias.aliases = "config --show-scope --get-regexp alias";
@@ -658,31 +661,6 @@
                   terminal = "tmux-256color";
                 };
 
-                sway = {
-                  enable = true;
-                  wrapperFeatures.base = true;
-                  wrapperFeatures.gtk = true;
-                  extraPackages = with pkgs; [
-                    swaylock
-                    dmenu
-                    foot
-                    swayidle
-                    wofi
-                    light
-                    i3status-rust
-                  ];
-                  extraSessionCommands = ''
-                    # SDL:
-                    export SDL_VIDEODRIVER=wayland
-                    # QT (needs qt5.qtwayland in systemPackages):
-                    export QT_QPA_PLATFORM=wayland-egl
-                    export QT_WAYLAND_DISABLE_WINDOWDECORATION="1"
-                    # Fix for some Java AWT applications (e.g. Android Studio),
-                    # use this if they aren't displayed properly:
-                    export _JAVA_AWT_WM_NONREPARENTING=1
-                  '';
-                };
-
                 zsh = {
                   autosuggestions.enable = true;
                   autosuggestions.extraConfig.ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
@@ -698,14 +676,11 @@
                   syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
                   syntaxHighlighting.styles.alias = "fg=magenta,bold";
                   interactiveShellInit = ''
-                    source "${./pkg/zshrc}"
-                    hash -d current-sw=/run/current-system/sw
-                    hash -d booted-sw=/run/booted-system/sw
                     eval "$(${lib.getExe pkgs.direnv} hook zsh)"
                     eval "$(${lib.getExe pkgs.navi} widget zsh)"
-                    eval "$(${lib.getExe pkgs.starship} init zsh)"
                     eval "$(${lib.getExe pkgs.zoxide} init zsh)"
                     source "${pkgs.skim}/share/skim/key-bindings.zsh"
+                    source ${./pkg/zshrc}
                   '';
                 };
 
@@ -722,6 +697,9 @@
                 forcePageTableIsolation = true;
                 lockKernelModules = true;
                 pam.enableEcryptfs = true;
+                pam.u2f.authFile = ./pkg/u2f-authfile;
+                pam.u2f.control = "sufficient";
+                pam.u2f.enable = true;
                 polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
                 protectKernelImage = true;
                 rtkit.enable = true;
@@ -740,64 +718,78 @@
                 journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
                 journald.forwardToSyslog = false;
                 tlp.enable = true;
-                unclutter.enable = true;
                 upower.enable = true;
-              };
-
-              services.xserver = {
-                autorun = true;
-                displayManager.autoLogin.enable = true;
-                displayManager.autoLogin.user = prefs.user.login;
-                displayManager.defaultSession = "none+i3";
-                enable = true;
-                enableCtrlAltBackspace = true;
-                layout = "us";
-                libinput.touchpad.disableWhileTyping = true;
-                videoDrivers = ["modesetting"];
-                windowManager.i3.enable = true;
-                windowManager.i3.package = pkgs.i3-gaps;
-                xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
-              };
-
-              xdg.mime = {
-                enable = true;
-                defaultApplications."application/pdf" = "firefox.desktop";
-                removedAssociations."audio/mp3" = ["mpv.desktop" "umpv.desktop"];
-                removedAssociations."inode/directory" = "codium.desktop";
               };
 
               swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
               users.groups.users = {};
               users.groups.wheel = {};
-              virtualisation.oci-containers.backend = "podman";
-              virtualisation.podman.dockerCompat = true;
-              virtualisation.podman.dockerSocket.enable = true;
-              virtualisation.podman.enable = true;
+
+              virtualisation = {
+                oci-containers.backend = "podman";
+                podman.dockerCompat = true;
+                podman.dockerSocket.enable = true;
+                podman.enable = true;
+              };
 
               systemd = {
                 services.systemd-udev-settle.enable = false;
+                slices.compliance.enable = true;
+                services.sentinelone = {
+                  serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
+                  serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
+                  serviceConfig.CPUWeight = lib.mkForce 10;
+                  serviceConfig.Slice = "compliance.slice";
+                  serviceConfig.CPUQuota = lib.mkForce "10%";
+                  serviceConfig.DevicePolicy = "closed";
+                  serviceConfig.PrivateDevices = false;
+                  serviceConfig.PrivateMounts = false;
+                  serviceConfig.PrivateTmp = false;
+                  serviceConfig.PrivateIPC = true;
+                  serviceConfig.PrivateUsers = false;
+                  serviceConfig.ProtectHome = false;
+                  serviceConfig.ProtectControlGroups = false;
+                  serviceConfig.ProtectKernelModules = true;
+                  serviceConfig.ProtectKernelTunables = true;
+                };
+                services.kolide-launcher = {
+                  serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc" "/srv" "/sys" "/bin" "/mnt"];
+                  serviceConfig.CPUWeight = 10;
+                  serviceConfig.Slice = "compliance.slice";
+                  serviceConfig.LockPersonality = true;
+                  serviceConfig.CPUQuota = "10%";
+                  serviceConfig.DevicePolicy = "closed";
+                  serviceConfig.PrivateDevices = false;
+                  serviceConfig.PrivateIPC = true;
+                  serviceConfig.PrivateNetwork = true;
+                  serviceConfig.PrivateMounts = false;
+                  serviceConfig.PrivateTmp = true;
+                  serviceConfig.PrivateUsers = false;
+                  serviceConfig.ProtectHome = false;
+                  serviceConfig.ProtectClock = true;
+                  serviceConfig.ProtectSystem = true;
+                  serviceConfig.ProtectProc = true;
+                  serviceConfig.ProtectControlGroups = false;
+                  serviceConfig.ProtectKernelModules = true;
+                  serviceConfig.ProtectKernelTunables = true;
+                };
                 services.NetworkManager-wait-online.enable = false;
                 services.systemd-networkd-wait-online.enable = false;
               };
 
               environment.etc = {
-                "i3/config".text = builtins.readFile ./pkg/i3_config;
-                "sway/config".text = builtins.readFile ./pkg/sway_config;
-                "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
-                  "font_family DaddyTimeMono Nerd Font"
-                  "editor ${lib.getExe pkgs.neovim}"
-                ];
+                "zshrc.local" = {
+                  mode = "0444";
+                  text = ''
+                    __SYSTEM_ZSHRC_LOCAL=loading
+                    hash -d current-sw=/run/current-system/sw
+                    hash -d booted-sw=/run/booted-system/sw
+                    __SYSTEM_ZSHRC_LOCAL=loaded
+                  '';
+                };
               };
 
               environment.systemPackages = lib.concatLists [
-                (builtins.map (entry:
-                  pkgs.makeDesktopItem {
-                    name = "internal-${entry}";
-                    desktopName = "Open ${entry}.internal.";
-                    exec = "xdg-open https://${entry}.internal.digitalocean.com";
-                  })
-                prefs.internalHostnames)
-                (builtins.map (entry: pkgs.makeDesktopItem entry) prefs.desktopItem)
                 (builtins.map (p: pkgs."${p}") [
                   "_1password"
                   "aide"
@@ -806,10 +798,8 @@
                   "cuelsp"
                   "cuetools"
                   "delve"
-                  "direnv"
                   "expect"
                   "fd"
-                  "gh-dash"
                   "graphviz"
                   "jless"
                   "my-commontools"
@@ -817,16 +807,11 @@
                   "my-rustools"
                   "my-systools"
                   "my-virtools"
-                  "my-x11tools"
-                  "navi"
                   "neovim"
                   "ossec"
-                  "parallel"
                   "pass"
                   "topgrade"
                   "w3m"
-                  "yubikey-manager"
-                  "zoxide"
                   "zstd"
                 ])
                 (with pkgs; [
@@ -867,18 +852,6 @@
                         *) $0 help && exit 127;;
                       esac'';
                   })
-
-                  (pkgs.writeShellApplication {
-                    name = "rofi";
-                    runtimeInputs = [rofi terminus-nerdfont];
-                    text = lib.concatStringsSep " " [
-                      "exec rofi"
-                      "-markup"
-                      "-modi drun,ssh,window,run"
-                      "-font 'DaddyTimeMono Nerd Font 12'"
-                      "\"$@\""
-                    ];
-                  })
                 ])
               ];
 
@@ -888,7 +861,7 @@
               # this value at the release version of the first install of this system.
               # Before changing this value read the documentation for this option
               # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html)
-              system.stateVersion = lib.mkForce "22.05";
+              system.stateVersion = lib.mkForce "22.11";
               system.autoUpgrade.enable = true;
             })
           ];
@@ -896,7 +869,107 @@
     };
 
     nixosModules = {
-      myDNS = {
+      sway = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: {
+        services.unclutter.enable = true;
+        programs.xwayland.enable = true;
+        environment.etc = {
+          "sway/config".text = builtins.readFile ./pkg/sway_config;
+          "sway/status.toml".text = builtins.readFile ./pkg/sway_status.toml;
+          "i3/config".text = builtins.readFile ./pkg/i3_config;
+          "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
+            "font_family DaddyTimeMono Nerd Font"
+            "editor ${lib.getExe pkgs.neovim}"
+          ];
+        };
+        services.xserver = {
+          autorun = true;
+          displayManager.autoLogin.enable = true;
+          displayManager.autoLogin.user = prefs.user.login;
+          displayManager.defaultSession = "sway";
+          enable = true;
+          enableCtrlAltBackspace = true;
+          layout = "us";
+          libinput.touchpad.disableWhileTyping = true;
+          videoDrivers = ["modesetting"];
+          windowManager.i3.enable = true;
+          windowManager.i3.package = pkgs.i3-gaps;
+          xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
+        };
+        programs.sway = {
+          enable = true;
+          wrapperFeatures.base = true;
+          wrapperFeatures.gtk = true;
+          extraPackages = with pkgs; [
+            swaylock
+            firefox-wayland
+            dmenu
+            foot
+            swayidle
+            wofi
+            light
+            i3status-rust
+          ];
+
+          extraSessionCommands = ''
+            # SDL:
+            export SDL_VIDEODRIVER=wayland
+            # QT (needs qt5.qtwayland in systemPackages):
+            export QT_QPA_PLATFORM=wayland-egl
+            export QT_WAYLAND_DISABLE_WINDOWDECORATION="1"
+            # Fix for some Java AWT applications (e.g. Android Studio),
+            # use this if they aren't displayed properly:
+            export _JAVA_AWT_WM_NONREPARENTING=1
+          '';
+        };
+        xdg.mime = {
+          enable = true;
+          defaultApplications."application/pdf" = "firefox.desktop";
+          removedAssociations."audio/mp3" = ["mpv.desktop" "umpv.desktop"];
+          removedAssociations."inode/directory" = "codium.desktop";
+        };
+
+        environment.systemPackages = lib.concatLists [
+          (with pkgs; [
+            _1password-gui
+            # arandr xbindkeys xclip xdotool scrot
+            slack
+            kitty
+            kitty-themes
+            logseq
+            firefox
+            firefox-devedition-bin
+            flameshot
+
+            (writeShellApplication {
+              name = "rofi";
+              runtimeInputs = [rofi terminus-nerdfont];
+              text = lib.concatStringsSep " " [
+                "exec rofi"
+                "-markup"
+                "-modi drun,ssh,window,run"
+                "-font 'DaddyTimeMono Nerd Font 12'"
+                "\"$@\""
+              ];
+            })
+          ])
+
+          (builtins.map (entry:
+            pkgs.makeDesktopItem {
+              name = "internal-${entry}";
+              desktopName = "Open ${entry}.internal.";
+              exec = "xdg-open https://${entry}.internal.digitalocean.com";
+            })
+          prefs.internalHostnames)
+          (builtins.map (entry: pkgs.makeDesktopItem entry) prefs.desktopItem)
+        ];
+      };
+
+      dns = {
         config,
         lib,
         pkgs,
@@ -907,7 +980,25 @@
           # networking.resolvconf.enable = lib.mkForce false;
           networking.networkmanager.dns = lib.mkForce "none";
           # networking.useHostResolvConf = true;
-          systemd.services.dnscrypt-proxy2.serviceConfig.StateDirectory = lib.mkForce "dnscrypt-proxy2";
+          systemd = {
+            slices.discovery.enable = true;
+            services.dnscrypt-proxy2 = {
+              serviceConfig.Slice = "discovery.slice";
+              serviceConfig.StateDirectory = lib.mkForce "dnscrypt-proxy2";
+              serviceConfig.CPUWeight = lib.mkForce 10;
+              serviceConfig.CPUQuota = lib.mkForce "10%";
+              serviceConfig.DevicePolicy = "closed";
+              serviceConfig.PrivateDevices = true;
+              serviceConfig.PrivateMounts = true;
+              serviceConfig.PrivateTmp = true;
+              serviceConfig.PrivateUsers = false;
+              serviceConfig.DynamicUser = true;
+              serviceConfig.ProtectHome = true;
+              serviceConfig.ProtectKernelModules = true;
+              serviceConfig.ProtectKernelTunables = true;
+            };
+          };
+
           services.dnscrypt-proxy2.settings = {
             # Server Controls
             # ----------------
@@ -915,13 +1006,30 @@
             block_undelegated = true;
             block_unqualified = true;
             blocked_query_response = "refused";
+            lb_strategy = "ph";
             edns_client_subnet = ["0.0.0.0/0" "2001:db8::/32"];
             ipv4_servers = true;
             ipv6_servers = true;
             require_dnssec = true;
-            require_nofilter = false;
+            require_nofilter = true;
             require_nolog = true;
-            server_names = ["cloudflare" "cloudflare-ipv6" "cloudflare-security" "cloudflare-security-ipv6"];
+            skip_incompatible = true;
+            disabled_server_names = [
+              "cloudflare"
+              "cloudflare-ipv6"
+              "cloudflare-security"
+              "cloudflare-security-ipv6"
+            ];
+            server_names = [
+              "dnscrypt.ca-2"
+              "dnscrypt.ca-2-doh"
+              "dnscrypt.ca-2-doh-ipv6"
+              "dnscrypt.ca-2-ipv6"
+              "dns.digitale-gesellschaft.ch"
+              "dns.digitale-gesellschaft.ch-2"
+              "dns.digitale-gesellschaft.ch-ipv6"
+              "dns.digitale-gesellschaft.ch-ipv6-2"
+            ];
             # Caching & TTLs
             # --------------
             cloak_ttl = 600;
@@ -1031,59 +1139,29 @@
               (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
           };
         };
-      nixConfig = {
+      corp = {
         config,
         lib,
         pkgs,
         ...
       }: {
-        nix.daemonCPUSchedPolicy = "idle";
-        nix.daemonIOSchedPriority = 5;
-        nix.gc.automatic = true;
-        nix.gc.dates = "daily";
-        nix.optimise.automatic = true;
-        nix.optimise.dates = ["daily"];
-        nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
-        nix.settings.allow-dirty = true;
-        nix.settings.auto-optimise-store = true;
-        nix.settings.cores = 2;
-        nix.settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
-        nix.settings.log-lines = 50;
-        nix.settings.max-free = 64 * 1024 * 1024 * 1024;
-        nix.settings.system-features = ["kvm"];
-        nix.settings.warn-dirty = false;
-        nixpkgs.config.allowUnfree = true;
-        nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
-      };
-      emax = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        services.emacs = {
-          enable = false;
-          install = false;
-          package = pkgs.emacsWithPackages (epkgs: [
-            epkgs.melpaStablePackages.magit
-          ]);
+        assertions = lib.mapAttrsToList (message: assertion: {inherit assertion message;}) {
+          /*
+          if this module is included the following conditions must be
+          satisfied in order to build the machine:
+          */
+          "sshd is forbidden" = !config.services.sshd.enable;
+          "samba is disabled" = !config.services.samba.enable;
+          "avahi is disabled" = !config.services.avahi.enable;
+          "sudo is enabled" = config.security.sudo.enable;
+          "sentinelone is enabled" = config.services.sentinelone.enable;
+          "kolide is enabled" = config.services.kolide-launcher.enable;
         };
-      };
-      /*
-      do-internal represents "internal" digitalocean configuration.
-      beyond that... I haven't decided what this module does yet..
-      */
-      do-internal = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
         imports = [
           self.inputs.do-nixpkgs.nixosModules.kolide-launcher
           self.inputs.do-nixpkgs.nixosModules.sentinelone
         ];
-        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
+        # security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
         services.sentinelone.enable = true;
         services.kolide-launcher.enable = true;
         services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
@@ -1091,6 +1169,48 @@
         system.nixos.tags = ["digitalocean"];
         networking.hosts = prefs.networking.hosts;
         environment.systemPackages = [pkgs.do-internal];
+
+        systemd = {
+          slices.compliance.enable = true;
+          services.sentinelone = {
+            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
+            serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
+            serviceConfig.CPUWeight = lib.mkForce 10;
+            serviceConfig.Slice = "compliance.slice";
+            serviceConfig.CPUQuota = lib.mkForce "10%";
+            serviceConfig.DevicePolicy = "closed";
+            serviceConfig.PrivateDevices = false;
+            serviceConfig.PrivateMounts = false;
+            serviceConfig.PrivateTmp = false;
+            serviceConfig.PrivateIPC = true;
+            serviceConfig.PrivateUsers = false;
+            serviceConfig.ProtectHome = false;
+            serviceConfig.ProtectControlGroups = false;
+            serviceConfig.ProtectKernelModules = true;
+            serviceConfig.ProtectKernelTunables = true;
+          };
+          services.kolide-launcher = {
+            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc" "/srv" "/sys" "/bin" "/mnt"];
+            serviceConfig.CPUWeight = 10;
+            serviceConfig.Slice = "compliance.slice";
+            serviceConfig.LockPersonality = true;
+            serviceConfig.CPUQuota = "10%";
+            serviceConfig.DevicePolicy = "closed";
+            serviceConfig.PrivateDevices = false;
+            serviceConfig.PrivateIPC = true;
+            serviceConfig.PrivateNetwork = true;
+            serviceConfig.PrivateMounts = false;
+            serviceConfig.PrivateTmp = true;
+            serviceConfig.PrivateUsers = false;
+            serviceConfig.ProtectHome = false;
+            serviceConfig.ProtectClock = true;
+            serviceConfig.ProtectSystem = true;
+            serviceConfig.ProtectProc = true;
+            serviceConfig.ProtectControlGroups = false;
+            serviceConfig.ProtectKernelModules = true;
+            serviceConfig.ProtectKernelTunables = true;
+          };
+        };
       };
 
       /*
@@ -1120,6 +1240,9 @@
         networking.wireless.interfaces = ["wlan0"];
         networking.wireless.iwd.enable = true;
         networking.wireless.userControlled.enable = true;
+        systemd.services.systemd-udev-settle.enable = false;
+        systemd.services.NetworkManager-wait-online.enable = false;
+        systemd.services.systemd-networkd-wait-online.enable = false;
         sound.enable = true;
         sound.mediaKeys.enable = true;
 
@@ -1155,34 +1278,27 @@
         ];
       };
 
-      /*
-      this contains ... well.. me. (unless "you" configure it)
-      */
-      ${prefs.user.login} = {
+      user = {
         config,
         lib,
         pkgs,
         ...
-      }: {
-        users.users.${prefs.user.login} = {
-          extraGroups = ["video" "users" prefs.user.login];
-          group = prefs.user.login;
+      }: let
+        inherit (prefs.user) login;
+      in {
+        users.users.${login} = {
+          extraGroups = ["video" "users" login];
+          group = login;
           initialPassword = "";
-          home = "/home/${prefs.user.login}";
+          home = "/home/${login}";
           shell = pkgs.zsh;
           uid = 1000;
           isNormalUser = true;
         };
-        nix.settings.allowed-users = [prefs.user.login];
-        nix.settings.trusted-users = [prefs.user.login];
-        users.groups.${prefs.user.login}.gid = 990;
-        system.nixos.tags = [prefs.user.login];
-        security.pam.u2f.enable = true;
-        security.pam.u2f.control = "sufficient";
-
-        security.pam.u2f.authFile = pkgs.writeText "u2f-authFile" (lib.concatStringsSep "\n" [
-          "${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence"
-        ]);
+        nix.settings.allowed-users = [login];
+        nix.settings.trusted-users = [login];
+        users.groups.${login}.gid = 990;
+        system.nixos.tags = [login];
 
         security.sudo.extraRules = [
           {
@@ -1226,7 +1342,7 @@
     };
 
     packages = self.lib.withPkgs (pkgs: {
-      inherit (pkgs) neovim do-internal gomod2nix;
+      inherit (pkgs) neovim;
     });
 
     apps = self.lib.withPkgs (pkgs: {
@@ -1296,5 +1412,5 @@
         default = go;
       });
   };
-  # vim:sts=2:et:ft=nix:fdm=indent:fdl=0:fcl=all:fdo=all
+  # vim:sts=2:et:ft=nix:fdm=indent:fdl=0
 }

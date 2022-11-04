@@ -94,7 +94,7 @@ exec = "kitty w3m file:///run/current-system/sw/share/doc/nixos/options.html"
 [[desktopItem]]
 name = "sway"
 desktopName = "Launch Sway"
-exec = "sway"
+exec = "sway -c /etc/sway/config"
 
 [[desktopItem]]
 name = "ghe-cicd"

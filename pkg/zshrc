@@ -64,8 +64,8 @@ zmodload "zsh/attr" "zsh/cap" "zsh/clone" "zsh/complete" "zsh/complist" "zsh/com
   "zsh/curses" "zsh/langinfo" "zsh/mathfunc" "zsh/parameter" "zsh/regex" "zsh/sched" "zsh/system" \
   "zsh/termcap" "zsh/terminfo" "zsh/zle" "zsh/zleparameter" "zsh/zpty" "zsh/zselect" "zsh/zutil"
 
-autoload -Uz promptinit colors compinit bashcompinit;
-promptinit && colors && compinit && bashcompinit
+# autoload -Uz promptinit colors compinit bashcompinit;
+# promptinit && colors && compinit && bashcompinit
 
 #=======================================================================
 
@@ -264,9 +264,10 @@ bindkey '\C-x\C-e' edit-command-line # Edit the current command line in $EDITOR
 bindkey "\C-x\C-x" zle-run-navi
 bindkey "^[m" copy-prev-shell-word
 bindkey "^[e" edit-command-line
-bindkey "^[d" zle-skim-dirs
-bindkey "^[n" zle-run-navi
-bindkey "^[f" zle-skim-dir
+bindkey "^[d"  zle-skim-dirs
+bindkey "^[n"  zle-run-navi
+bindkey "\C-g" zle-run-navi
+bindkey "^[f"  zle-skim-dir
 bindkey '\C-x\C-e' edit-command-line
 bindkey '\C-k' up-line-or-history
 bindkey '\C-j' down-line-or-history
@@ -282,13 +283,11 @@ bindkey " "    expand-alias-space
 bindkey -M isearch " " magic-space
 
 #=======================================================================
-
-
-maybe-eval-bin direnv hook zsh
-maybe-eval-bin navi widget zsh
-# maybe-eval-bin starship init zsh
-maybe-eval-bin zoxide init zsh
-maybe-eval-bin docc completion zsh
+# maybe-eval-bin direnv hook zsh
+# maybe-eval-bin navi widget zsh
+# # maybe-eval-bin starship init zsh
+# maybe-eval-bin zoxide init zsh
+# maybe-eval-bin docc completion zsh
 
 # maybe-source   "$HOME/.aliases.sh"
 maybe-source   "$HOME/.cargo/env"
