@@ -12,6 +12,12 @@
       inputs.utils.follows = "flake-utils";
     };
 
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
     fnctl = {
       url = "github:jakelogemann/fnctl";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -129,11 +135,22 @@
     prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
   in {
     overlays = {
+      rust = self.inputs.rust-overlay.overlays.default;
+
       custom = next: prev: let
         callPackage = prev.lib.callPackageWith (prev // {inherit self prefs;});
       in rec {
         gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
-        neovim = callPackage ./pkg/nvim {};
+        neovim = callPackage ./pkg/nvim/default.nix {};
+
+        my-nixtools = prev.symlinkJoin {
+          name = "my-nixtools";
+          paths = with prev; [
+            alejandra
+            nixos-rebuild
+            nix
+          ];
+        };
 
         my-rustools = prev.symlinkJoin {
           name = "my-rustools";
@@ -142,6 +159,7 @@
             llvm-manpages
             rustup
             rusty-man
+            rust-analyzer
           ];
         };
 
@@ -192,17 +210,11 @@
         my-commontools = prev.symlinkJoin {
           name = "my-commontools";
           paths = with prev; [
-            dasel
-            direnv
-            navi
-            starship
-            zoxide
             bat
             coreutils
-            skim
             cue
-            ranger
-            ripgrep
+            dasel
+            direnv
             file
             gh
             git-cliff
@@ -214,9 +226,14 @@
             gum
             jq
             lsd
-            unrar
+            navi
+            ranger
+            ripgrep
+            skim
+            starship
             unzip
             zip
+            zoxide
           ];
         };
 
@@ -242,6 +259,7 @@
       digitalocean = next: prev:
         with prev; {
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
+          fly = self.inputs.do-nixpkgs.packages.${prev.system}.fly;
 
           buildCthulhuBins = {
             cthulhu ? self.inputs.cthulhu,
@@ -793,7 +811,6 @@
                 (builtins.map (p: pkgs."${p}") [
                   "_1password"
                   "aide"
-                  "alejandra"
                   "commitlint"
                   "cuelsp"
                   "cuetools"
@@ -803,9 +820,8 @@
                   "graphviz"
                   "jless"
                   "my-commontools"
-                  "my-gotools"
-                  "my-rustools"
                   "my-systools"
+                  "my-nixtools"
                   "my-virtools"
                   "neovim"
                   "ossec"
@@ -875,7 +891,6 @@
         pkgs,
         ...
       }: {
-        services.unclutter.enable = true;
         programs.xwayland.enable = true;
         environment.etc = {
           "sway/config".text = builtins.readFile ./pkg/sway_config;
@@ -940,6 +955,7 @@
             slack
             kitty
             kitty-themes
+            solaar
             logseq
             firefox
             firefox-devedition-bin
@@ -1236,6 +1252,8 @@
         hardware.opengl.enable = true;
         hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
         hardware.pulseaudio.enable = true;
+        hardware.bluetooth.enable = true;
+        hardware.bluetooth.package = pkgs.bluez5-experimental;
         hardware.uinput.enable = true;
         networking.wireless.interfaces = ["wlan0"];
         networking.wireless.iwd.enable = true;
@@ -1287,7 +1305,6 @@
         inherit (prefs.user) login;
       in {
         users.users.${login} = {
-          extraGroups = ["video" "users" login];
           group = login;
           initialPassword = "";
           home = "/home/${login}";
@@ -1297,7 +1314,14 @@
         };
         nix.settings.allowed-users = [login];
         nix.settings.trusted-users = [login];
-        users.groups.${login}.gid = 990;
+        users.groups.kvm.members = [login];
+        users.groups.users.members = [login];
+        users.groups.video.members = [login];
+        users.groups.wheel.members = [login];
+        users.groups.podman.members = [login];
+        users.groups.wireshark.members = [login];
+        users.groups.systemd-journal.members = [login];
+        users.groups.${login}.members = [login];
         system.nixos.tags = [login];
 
         security.sudo.extraRules = [
@@ -1404,9 +1428,26 @@
 
     devShells = self.lib.withPkgs (pkgs:
       with pkgs; rec {
-        go = mkShell {
-          name = "my-gotools";
-          paths = [my-commontools my-gotools];
+        go = mkShell rec {
+          name = "my go env";
+          nativeBuildInputs = [my-commontools my-gotools neovim];
+          CGO_ENABLED = "0";
+          GO111MODULE = "on";
+          GOPROXY = "direct";
+          GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+          GOFLAGS = "-mod=vendor -trimpath";
+          GONOPROXY = GOPRIVATE;
+          GONOSUMDB = GOPRIVATE;
+        };
+
+        rust = mkShell {
+          name = "my rust env";
+          nativeBuildInputs = [my-commontools my-rustools neovim];
+        };
+
+        nix = mkShell {
+          name = "my nix env";
+          nativeBuildInputs = [my-commontools my-nixtools neovim];
         };
 
         default = go;
