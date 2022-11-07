@@ -6,7 +6,9 @@ if vim.fn.has("nvim-0.8") ~= 1 or vim.version().prerelease then
 	end)
 end
 
-vim.cmd.colorscheme("dracula")
+vim.env.XDG_CACHE_HOME = vim.fn.expand("$HOME/.cache")
+vim.cmd.colorscheme("nordfox")
+vim.g.which_key_use_floating_win = 1
 vim.g.autoformat_enabled = true -- enable or disable auto formatting at start (lsp.formatting.format_on_save must be enabled)
 vim.g.autopairs_enabled = true -- enable autopairs at start
 vim.g.cmp_enabled = true -- enable completion at start
@@ -44,7 +46,6 @@ vim.opt.backup = false
 vim.opt.clipboard = "unnamedplus" -- Connection to the system clipboard
 vim.opt.cmdheight = 0 -- hide command line unless needed
 vim.opt.completeopt = { "menuone", "noselect" } -- Options for insert mode completion
-vim.opt.completeopt = { "menuone", "noselect" }
 vim.opt.copyindent = true -- Copy the previous indentation on autoindenting
 vim.opt.cursorline = true -- Highlight the text line of the cursor
 vim.opt.expandtab = true -- Enable the use of space in tab
@@ -56,7 +57,7 @@ vim.opt.hlsearch = true
 vim.opt.ignorecase = true -- Case insensitive searching
 vim.opt.incsearch = true
 vim.opt.laststatus = 3 -- globalstatus
-vim.opt.lazyredraw = true -- lazily redraw screen
+vim.opt.lazyredraw = false -- lazily redraw screen
 vim.opt.mouse = "a" -- Enable mouse support
 vim.opt.number = true -- Show numberline
 vim.opt.preserveindent = true -- Preserve indent structure as much as possible
@@ -73,6 +74,7 @@ vim.opt.signcolumn = "yes" -- Always show the sign column
 vim.opt.smartcase = true -- Case sensitivie searching
 vim.opt.softtabstop = 2
 vim.opt.spell = false
+vim.opt.grepprg = "rg --vimgrep"
 vim.opt.splitbelow = true -- Splitting a new window below the current one
 vim.opt.splitright = true -- Splitting a new window at the right of the current one
 vim.opt.startofline = false
@@ -133,6 +135,8 @@ utils.setup("terminal")
 utils.setup("dressing")
 utils.setup("better_escape")
 utils.setup("lualine")
+utils.setup("neoscroll")
+utils.setup("wilder", {modes = {":"}})
 
 utils.setup("notify", function(notify)
 	notify.setup({ stages = "fade" })
@@ -298,8 +302,22 @@ utils.setup("lspconfig", function(lspconfig)
 		},
 	})
 
+	lspconfig["jsonls"].setup({
+		on_attach = on_attach,
+		capabilities = capabilities,
+		settings = {
+      json = {
+        schemas = require('schemastore').json.schemas({
+          ignore = {
+            'non-package.json',
+          },
+        }),
+        validate = { enable = true },
+      },
+		},
+	})
+
 	lspconfig["gopls"].setup({
-		cmd = { "gopls" },
 		on_attach = on_attach,
 		capabilities = capabilities,
 		settings = {
@@ -408,7 +426,7 @@ utils.setup("cmp", function(cmp)
 						return vim_item
 					end
 				end
-				return lspkind.cmp_format({ with_text = false })(entry, vim_item)
+				return require("lspkind").cmp_format({ with_text = false })(entry, vim_item)
 			end,
 		},
 		sorting = {
@@ -725,6 +743,31 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	end,
 	group = vim.api.nvim_create_augroup("config", { clear = false }),
 })
+
+vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "InsertLeave", "CmdlineLeave", "WinEnter"}, {
+  pattern = "*",
+	desc = "Activate relative numbering",
+	callback = function()
+    if vim.o.nu and vim.api.nvim_get_mode().mode ~= "i" then
+      vim.opt.relativenumber = true
+    end
+	end,
+	group = "config",
+})
+
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost", "InsertEnter", "CmdlineEnter", "WinLeave"}, {
+  pattern = "*",
+	desc = "Deactivate relative numbering",
+	callback = function()
+    if vim.o.nu then
+      vim.opt.relativenumber = false
+      vim.cmd("redraw")
+    end
+	end,
+	group = "config",
+})
+
+
 
 vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "InsertLeave" }, {
 	desc = "Reset indent guide settings",

@@ -9,7 +9,8 @@
 /hardware-configuration.nix
 /public
 /vendor
+/fnctl
+/do-nixpkgs
 flake.lock
 result
-do-nixpkgs
 .direnv

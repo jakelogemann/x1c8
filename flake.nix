@@ -143,6 +143,45 @@
         gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
         neovim = callPackage ./pkg/nvim/default.nix {};
 
+        system-cli = prev.writeShellApplication {
+          name = "system";
+          runtimeInputs = with prev; [
+            bat
+            git
+            lsd
+            nix
+            nixos-rebuild
+          ];
+          text = ''
+            [[ $# -gt 0 ]] || exec $0 help;
+            case $1 in
+            bin) echo "/run/current-system/sw/bin";;
+            bins) lsd --no-symlink "$($0 bin)";;
+            boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
+            develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
+            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && ${neovim}/bin/nvim ;;
+            flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
+            git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
+            help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
+            update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
+            pager) $0 tree | bat --file-name="$0 $*" --plain;;
+            repo|path|dir) echo "${prefs.repo.path}";;
+            tree) lsd --tree --no-symlink;;
+            shutdown|poweroff|reboot|journalctl) exec "$@";;
+              repl) nix repl ${(prev.writeText "repl.nix" ''
+                let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
+                 inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
+                 lib = pkgs.lib // flake.lib;
+                 inherit (config.networking) hostName;
+                 system = "${prev.system}";
+                 # commented, but viable alternative:
+                 ## flake = builtins.getFlake "${self}";
+              })
+            '')};;
+              *) $0 help && exit 127;;
+            esac'';
+        };
+
         my-nixtools = prev.symlinkJoin {
           name = "my-nixtools";
           paths = with prev; [
@@ -504,7 +543,7 @@
                   rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
                 };
                 variables = {
-                  EDITOR = lib.getExe pkgs.neovim;
+                  EDITOR = "nvim";
                   BAT_STYLE = "header-filename,grid";
                   BROWSER = lib.getExe pkgs.firefox-devedition-bin;
                   PAGER = lib.getExe pkgs.bat;
@@ -819,6 +858,7 @@
                   "fd"
                   "graphviz"
                   "jless"
+                  "system-cli"
                   "my-commontools"
                   "my-systools"
                   "my-nixtools"
@@ -831,43 +871,6 @@
                   "zstd"
                 ])
                 (with pkgs; [
-                  (pkgs.writeShellApplication {
-                    name = "system";
-                    runtimeInputs = with pkgs; [
-                      bat
-                      git
-                      lsd
-                      nix
-                      nixos-rebuild
-                    ];
-                    text = ''
-                      [[ $# -gt 0 ]] || exec $0 help;
-                      case $1 in
-                      bin) echo "/run/current-system/sw/bin";;
-                      bins) lsd --no-symlink "$($0 bin)";;
-                      boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-                      develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
-                      edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR flake.nix;;
-                      flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
-                      git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
-                      help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-                      pager) $0 tree | bat --file-name="$0 $*" --plain;;
-                      repo|path|dir) echo "${prefs.repo.path}";;
-                      tree) lsd --tree --no-symlink;;
-                      shutdown|poweroff|reboot|journalctl) exec "$@";;
-                        repl) nix repl ${(pkgs.writeText "repl.nix" ''
-                          let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
-                           inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
-                           lib = pkgs.lib // flake.lib;
-                           inherit (config.networking) hostName;
-                           system = "${system}";
-                           # commented, but viable alternative:
-                           ## flake = builtins.getFlake "${self}";
-                        })
-                      '')};;
-                        *) $0 help && exit 127;;
-                      esac'';
-                  })
                 ])
               ];
 
@@ -927,6 +930,7 @@
             swayidle
             wofi
             light
+            wl-clipboard
             i3status-rust
           ];
 
@@ -1366,7 +1370,7 @@
     };
 
     packages = self.lib.withPkgs (pkgs: {
-      inherit (pkgs) neovim;
+      inherit (pkgs) neovim system-cli;
     });
 
     apps = self.lib.withPkgs (pkgs: {
@@ -1383,45 +1387,7 @@
         drv = pkgs.neovim;
         exePath = "/bin/nvim";
       };
-      default = self.lib.mkApp {
-        drv = pkgs.writeShellApplication {
-          name = "system";
-          runtimeInputs = with pkgs; [
-            bat
-            git
-            lsd
-            nix
-            nixos-rebuild
-          ];
-          text = ''
-            [[ $# -gt 0 ]] || exec $0 help;
-            case $1 in
-            bin) echo "/run/current-system/sw/bin";;
-            bins) lsd --no-symlink "$($0 bin)";;
-            boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-            develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
-            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR flake.nix;;
-            flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
-            update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
-            git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
-            help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-            pager) $0 tree | bat --file-name="$0 $*" --plain;;
-            repo|path|dir) echo "${prefs.repo.path}";;
-            tree) lsd --tree --no-symlink;;
-            shutdown|poweroff|reboot|journalctl) exec "$@";;
-            repl) nix repl ${(pkgs.writeText "repl.nix" ''
-              let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
-               inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
-               lib = pkgs.lib // flake.lib;
-               inherit (config.networking) hostName;
-               # commented, but viable alternative:
-               ## flake = builtins.getFlake "${self}";
-              })
-            '')};;
-              *) $0 help && exit 127;;
-              esac'';
-        };
-      };
+      default = self.lib.mkApp { drv = pkgs.system-cli; };
     });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
