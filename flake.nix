@@ -6,6 +6,71 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixos-templates.url = "github:nixos/templates";
 
+    nmd = {
+      url = "gitlab:rycee/nmd";
+      flake = false;
+    };
+
+    nmt = {
+      url = "gitlab:rycee/nmt";
+      flake = false;
+    };
+
+    cntr = {
+      url = "github:Mic92/cntr";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.utils.follows = "flake-utils";
+    };
+
+    nix = {
+      url = "github:nixos/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-regression.follows = "nixpkgs";
+    };
+
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    go-nix = {
+      url = "github:nix-community/go-nix";
+      flake = false;
+    };
+
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixago = {
+      url = "github:nix-community/nixago";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixago-exts.follows = "nixago-exts";
+    };
+
+    nixago-exts = {
+      url = "github:nix-community/nixago-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixago.follows = "nixago";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+
+    nixpkgs-lint = {
+      url = "github:nix-community/nixpkgs-lint";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.naersk.follows = "naersk";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.utils.follows = "flake-utils";
+    };
+
     gomod2nix = {
       url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -117,8 +182,11 @@
 
     do-nixpkgs = {
       url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
       inputs.cthulhu.follows = "cthulhu";
+      inputs.pre-commit-hooks.follows = "pre-commit-hooks";
+      inputs.naersk.follows = "naersk";
     };
   };
 
@@ -186,7 +254,9 @@
           name = "my-nixtools";
           paths = with prev; [
             alejandra
+            self.inputs.nixpkgs-lint.packages.${prev.system}.default
             nixos-rebuild
+            nvd
             nix
           ];
         };
@@ -215,6 +285,7 @@
             nerdctl
             packer
             qemu_full
+            self.inputs.cntr.packages.${prev.system}.cntr
             skopeo
           ];
         };
@@ -222,6 +293,7 @@
         my-systools = prev.symlinkJoin {
           name = "my-systools";
           paths = with prev; [
+            killall
             bpftools
             dmidecode
             dnsutils
@@ -300,6 +372,44 @@
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
           fly = self.inputs.do-nixpkgs.packages.${prev.system}.fly;
 
+          dao = buildGoModule rec {
+            name = "dao";
+            ldflags = [
+              "-s"
+              "-w"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoVersion=${version}"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoBuild=${version}"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoOSArch=${prev.system}"
+            ];
+            src = builtins.toString self.inputs.dao;
+            modRoot = "${src}";
+            vendorSha256 = null;
+            version =
+              if self.inputs.dao ? "shortRev"
+              then self.inputs.dao.shortRev
+              else if self.inputs.dao ? "rev"
+              then self.inputs.dao.rev
+              else "dev";
+            doCheck = false;
+            nativeBuildInputs = [
+              cacert
+              git
+              gnumake
+              jq
+              pkg-config
+              zlib
+            ];
+            overrideModAttrs = _: rec {
+              CGO_ENABLED = "0";
+              GO111MODULE = "on";
+              GOPROXY = "direct";
+              GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+              GOFLAGS = "-mod=vendor -trimpath";
+              GONOPROXY = GOPRIVATE;
+              GONOSUMDB = GOPRIVATE;
+            };
+          };
+
           buildCthulhuBins = {
             cthulhu ? self.inputs.cthulhu,
             name ? "cthulhu-bins",
@@ -363,64 +473,17 @@
 
           do-internal = prev.symlinkJoin rec {
             name = "do-internal";
-            paths = with self.inputs.do-nixpkgs.packages.${prev.system};
-              [
-                (prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")
-                (prev.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-                (prev.writeShellApplication {
-                  name = "ghe";
-                  runtimeInputs = with prev; [gh];
-                  text = prev.lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-                })
-                (prev.writeShellApplication {
-                  name = "vault";
-                  runtimeInputs = with prev; [vault];
-                  text = prev.lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-                })
-                (prev.writeShellApplication {
-                  name = "vpn";
-                  runtimeInputs = with prev; [pass coreutils gnused openconnect];
-                  text = let
-                    _a = "$";
-                  in ''
-                    # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
-                    [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
-                    [[ -n "$USER" ]] || read -r -p "USER: " USER
-                    [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
-                    CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
-                    declare -a vpn_args=( --protocol=gp )
-                    vpn_args+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
-                    vpn_args+=( -F _challenge:passwd="$MFA" )
-                    vpn_args+=( --background )
-                    vpn_args+=( --pid-file=/run/vpn.pid )
-                    vpn_args+=( --os=linux-64 )
-                    vpn_args+=( --passwd-on-stdin )
-                    vpn_args+=( -F _login:user="$USER" )
-                    vpn_args+=( "$CONNECT_URL" )
-                    set -x
-                    exec sudo openconnect "${_a}{vpn_args[@]}"
-                  '';
-                })
-              ]
-              ++ (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
+            paths = prev.lib.concatLists [
+              [(prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")]
+              (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
                 # Project-based Packages
-                "project-artifact"
                 "project-deptracker"
                 "project-dns"
                 "project-docc"
                 "project-droplet"
-                "project-harpoon"
-                "project-hvrouter"
-                "project-netsecpol"
-                "project-networktracerd"
-                "project-north"
-                "project-orca2"
-                "project-plinkod"
-                "project-respond"
-                "project-rmetadata"
-                "project-south"
-                "project-telemetry"
                 # Individual packages (a la carte)
+                "artifactctl"
+                "docc"
                 "autoreview"
                 "certdump"
                 "certtool"
@@ -440,7 +503,8 @@
                 "staff-cert"
                 "tracectl"
                 "vault"
-              ]);
+              ])
+            ];
           };
         };
     };
@@ -463,10 +527,7 @@
               pkgs,
               ...
             }: {
-              hardware.cpu.intel.updateMicrocode = true;
               hardware.gpgSmartcards.enable = true;
-              hardware.ksm.enable = true;
-              hardware.mcelog.enable = true;
               time.hardwareClockInLocalTime = true;
               time.timeZone = "America/New_York";
 
@@ -523,6 +584,8 @@
 
               environment = {
                 pathsToLink = ["/share/zsh"];
+                profileRelativeEnvVars.MANPATH = ["/man" "/share/man"];
+                profileRelativeEnvVars.PATH = ["/bin"];
                 shellAliases = {
                   git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
                   l = "ls -alh";
@@ -531,9 +594,6 @@
                   lla = "${lib.getExe pkgs.lsd} -la";
                   ls = lib.getExe pkgs.lsd;
                   lt = "${lib.getExe pkgs.lsd} --tree";
-                  systemctl-fzf-service = "systemctl --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'system services> '";
-                  systemctl-fzf-user-service = "systemctl --user --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'user services> '";
-                  systemctl-edit = "sudo systemctl edit --full --force";
                   tmux = "tmux -2u";
                   dmesg = "sudo dmesg";
                   tf = "terraform";
@@ -586,26 +646,33 @@
 
               networking = {
                 dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
+                hostName = prefs.host.name;
                 domain = "local";
                 enableIPv6 = true;
-                firewall.allowPing = true;
-                firewall.allowedTCPPorts = [];
-                firewall.allowedUDPPorts = [];
-                firewall.autoLoadConntrackHelpers = true;
-                firewall.checkReversePath = false;
-                firewall.enable = true;
-                firewall.logRefusedConnections = true;
-                firewall.logRefusedPackets = true;
-                firewall.logReversePathDrops = true;
-                firewall.pingLimit = "--limit 1/minute --limit-burst 5";
-                firewall.rejectPackets = true;
-                hostName = prefs.host.name;
+
+                firewall = {
+                  allowPing = true;
+                  allowedTCPPorts = [];
+                  allowedUDPPorts = [];
+                  autoLoadConntrackHelpers = false;
+                  checkReversePath = false;
+                  enable = true;
+                  extraPackages = with pkgs; [ ipset ];
+                  logRefusedConnections = true;
+                  logRefusedPackets = true;
+                  logRefusedUnicastsOnly = true;
+                  logReversePathDrops = true;
+                  pingLimit = "--limit 1/minute --limit-burst 5";
+                  rejectPackets = true;
+                };
+
                 nameservers =
                   prefs.dns.v4.ns
                   ++ [
                     "8.8.8.8"
                     "8.8.4.4"
                   ];
+
                 #   resolvconf.enable = lib.mkForce false;
                 useDHCP = true;
                 #   networkmanager.dns = lib.mkForce "none";
@@ -613,13 +680,11 @@
                 #   useHostResolvConf = true;
                 useNetworkd = true;
                 usePredictableInterfaceNames = true;
-                wireless.iwd.enable = true;
-                wireless.userControlled.enable = true;
-                wireless.interfaces = ["wlan0"];
               };
 
               nix = {
                 daemonCPUSchedPolicy = "idle";
+                daemonIOSchedClass = "idle";
                 daemonIOSchedPriority = 5;
                 gc.automatic = true;
                 gc.dates = "daily";
@@ -645,6 +710,14 @@
                 light.enable = true;
                 iotop.enable = true;
                 htop.enable = true;
+                htop.settings.hide_kernel_threads = true;
+                htop.settings.hide_userland_threads = true;
+                htop.settings.tree_view = true;
+                htop.settings.highlight_base_name = true;
+                htop.settings.highlight_megabytes = true;
+                htop.settings.cpu_count_from_zero = true;
+                htop.settings.detailed_cpu_time = true;
+                htop.settings.color_scheme = "6";
                 git.enable = true;
                 git.lfs.enable = true;
                 starship.enable = true;
@@ -763,19 +836,24 @@
                 sudo.enable = true;
                 tpm2.enable = true;
                 tpm2.pkcs11.enable = true;
-                virtualisation.flushL1DataCache = "always";
+                virtualisation.flushL1DataCache = "cond";
               };
 
               services = {
                 acpid.enable = true;
                 dnscrypt-proxy2.enable = true;
-                earlyoom.enable = true;
-                earlyoom.freeMemThreshold = 10;
                 fwupd.enable = true;
                 journald.extraConfig = lib.concatStringsSep "\n" ["SystemMaxUse=1G"];
                 journald.forwardToSyslog = false;
                 tlp.enable = true;
                 upower.enable = true;
+                nomad = {
+                  enable = true;
+                  enableDocker = false;
+                  settings.server.enabled = true;
+                  settings.client.enabled = true;
+                  settings.server.bootstrap_expect = 1;
+                };
               };
 
               swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
@@ -870,8 +948,6 @@
                   "w3m"
                   "zstd"
                 ])
-                (with pkgs; [
-                ])
               ];
 
               # This value determines the NixOS release from which the default
@@ -887,6 +963,10 @@
       };
     };
 
+    nixosImages = {
+      laptop = self.nixosConfigurations.laptop.config.system.build.vmWithBootloader;
+    };
+
     nixosModules = {
       sway = {
         config,
@@ -896,9 +976,8 @@
       }: {
         programs.xwayland.enable = true;
         environment.etc = {
-          "sway/config".text = builtins.readFile ./pkg/sway_config;
-          "sway/status.toml".text = builtins.readFile ./pkg/sway_status.toml;
-          "i3/config".text = builtins.readFile ./pkg/i3_config;
+          "sway/config".text = builtins.readFile ./pkg/sway/config;
+          "sway/status.toml".text = builtins.readFile ./pkg/sway/i3status.toml;
           "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
             "font_family DaddyTimeMono Nerd Font"
             "editor ${lib.getExe pkgs.neovim}"
@@ -959,11 +1038,9 @@
             slack
             kitty
             kitty-themes
-            solaar
             logseq
             firefox
             firefox-devedition-bin
-            flameshot
 
             (writeShellApplication {
               name = "rofi";
@@ -1174,25 +1251,55 @@
           "samba is disabled" = !config.services.samba.enable;
           "avahi is disabled" = !config.services.avahi.enable;
           "sudo is enabled" = config.security.sudo.enable;
-          "sentinelone is enabled" = config.services.sentinelone.enable;
           "kolide is enabled" = config.services.kolide-launcher.enable;
         };
         imports = [
           self.inputs.do-nixpkgs.nixosModules.kolide-launcher
           self.inputs.do-nixpkgs.nixosModules.sentinelone
         ];
-        # security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
-        services.sentinelone.enable = true;
+        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
+        services.sentinelone.enable = false;
         services.kolide-launcher.enable = true;
         services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         system.nixos.tags = ["digitalocean"];
         networking.hosts = prefs.networking.hosts;
-        environment.systemPackages = [pkgs.do-internal];
-
+        environment.variables.VAULT_CACERT = "${pkgs.do-nixpkgs.sammyca}";
+        environment.variables.GHE_HOST = "github.internal.digitalocean.com";
+        environment.variables.VAULT_ADDR = "https://vault-api.internal.digitalocean.com:8200";
+        environment.systemPackages = with pkgs; [
+          do-internal
+          dao
+          vault
+          openconnect
+          (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+          (writeShellApplication {
+            name = "ghe";
+            runtimeInputs = with pkgs; [gh];
+            text = "exec env GH_HOST=github.internal.digitalocean.com gh \"$@\"";
+          })
+          (writeShellScriptBin "vpn" ''
+            # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
+            [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
+            [[ -n "$USER" ]] || read -r -p "USER: " USER
+            [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
+            CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
+            PKG_DIR="$(dirname $(dirname $(readlink $(which openconnect))))"
+            declare -a vpn_args=( --protocol=gp )
+            vpn_args+=( --csd-wrapper=$PKG_DIR/libexec/openconnect/hipreport.sh )
+            vpn_args+=( -F _challenge:passwd="$MFA" )
+            vpn_args+=( --background )
+            vpn_args+=( --pid-file=$HOME/.local/vpn.pid )
+            vpn_args+=( --os=linux-64 )
+            vpn_args+=( --passwd-on-stdin )
+            vpn_args+=( -F _login:user="$USER" )
+            vpn_args+=( "$CONNECT_URL" )
+            set -x && sudo openconnect "''${vpn_args[@]}"
+          '')
+        ];
         systemd = {
           slices.compliance.enable = true;
-          services.sentinelone = {
+          services.sentinelone = lib.mkIf config.services.sentinelone.enable {
             serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
             serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
             serviceConfig.CPUWeight = lib.mkForce 10;
@@ -1209,7 +1316,7 @@
             serviceConfig.ProtectKernelModules = true;
             serviceConfig.ProtectKernelTunables = true;
           };
-          services.kolide-launcher = {
+          services.kolide-launcher = lib.mkIf config.services.kolide-launcher.enable {
             serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc" "/srv" "/sys" "/bin" "/mnt"];
             serviceConfig.CPUWeight = 10;
             serviceConfig.Slice = "compliance.slice";
@@ -1251,9 +1358,16 @@
 
         boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
         boot.kernelParams = ["i8042.reset=1" "i8042.nomux=1"];
+        hardware.cpu.intel.updateMicrocode = true;
+        hardware.ksm.enable = true;
+        hardware.mcelog.enable = true;
         hardware.acpilight.enable = true;
         hardware.enableAllFirmware = true;
         hardware.opengl.enable = true;
+        hardware.sensor.hddtemp.enable = true;
+        hardware.sensor.hddtemp.drives = ["/dev/disk/by-path/*"];
+        hardware.video.hidpi.enable= true;
+        hardware.sensor.iio.enable = true;
         hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
         hardware.pulseaudio.enable = true;
         hardware.bluetooth.enable = true;
@@ -1332,9 +1446,10 @@
           {
             users = [prefs.user.login];
             runAs = "root";
-            commands =
+            commands = lib.concatLists [
               ["ALL"]
-              ++ (builtins.map (name: {
+
+              (builtins.map (name: {
                   command = "/run/current-system/sw/bin/${name}";
                   options = ["NOSETENV" "NOPASSWD"];
                 }) [
@@ -1345,10 +1460,13 @@
                   "system"
                   "systemd-cgls"
                   "systemd-cgtop"
-                  "openconnect"
                   "dmesg"
                   "systemctl"
-                ]);
+                  "openconnect"
+                  "kill"
+                  "killall"
+                ])
+            ];
           }
         ];
       };
@@ -1387,7 +1505,7 @@
         drv = pkgs.neovim;
         exePath = "/bin/nvim";
       };
-      default = self.lib.mkApp { drv = pkgs.system-cli; };
+      default = self.lib.mkApp {drv = pkgs.system-cli;};
     });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);

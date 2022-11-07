@@ -1,3 +1,4 @@
+set $launcher "rofi -show drun"
 assign [class="^Firefox$" window_role="About"] 0: extra
 assign [class="^Slack$" window_role="browser-window"] 1: extra
 client.background #111111
