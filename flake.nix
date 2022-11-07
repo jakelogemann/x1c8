@@ -6,6 +6,55 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixos-templates.url = "github:nixos/templates";
 
+    nix = {
+      url = "github:nixos/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-regression.follows = "nixpkgs";
+    };
+
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    go-nix = {
+      url = "github:nix-community/go-nix";
+      flake = false;
+    };
+
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixago = {
+      url = "github:nix-community/nixago";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixago-exts.follows = "nixago-exts";
+    };
+
+    nixago-exts = {
+      url = "github:nix-community/nixago-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixago.follows = "nixago";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+
+    nixpkgs-lint = {
+      url = "github:nix-community/nixpkgs-lint";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.naersk.follows = "naersk";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.utils.follows = "flake-utils";
+    };
+
     gomod2nix = {
       url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -119,6 +168,8 @@
       url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
       inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
       inputs.cthulhu.follows = "cthulhu";
+      inputs.pre-commit-hooks.follows = "pre-commit-hooks";
+      inputs.naersk.follows = "naersk";
     };
   };
 
@@ -186,6 +237,7 @@
           name = "my-nixtools";
           paths = with prev; [
             alejandra
+            self.inputs.nixpkgs-lint.packages.${prev.system}.default
             nixos-rebuild
             nix
           ];
@@ -222,6 +274,7 @@
         my-systools = prev.symlinkJoin {
           name = "my-systools";
           paths = with prev; [
+            killall
             bpftools
             dmidecode
             dnsutils
@@ -300,6 +353,44 @@
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
           fly = self.inputs.do-nixpkgs.packages.${prev.system}.fly;
 
+          dao = buildGoModule rec {
+            name = "dao";
+            ldflags = [
+              "-s"
+              "-w"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoVersion=${version}"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoBuild=${version}"
+              "-X github.internal.digitalocean.com/digitalocean/dao/internal/cmd.daoOSArch=${prev.system}"
+            ];
+            src = builtins.toString self.inputs.dao;
+            modRoot = "${src}";
+            vendorSha256 = null;
+            version =
+              if self.inputs.dao ? "shortRev"
+              then self.inputs.dao.shortRev
+              else if self.inputs.dao ? "rev"
+              then self.inputs.dao.rev
+              else "dev";
+            doCheck = false;
+            nativeBuildInputs = [
+              cacert
+              git
+              gnumake
+              jq
+              pkg-config
+              zlib
+            ];
+            overrideModAttrs = _: rec {
+              CGO_ENABLED = "0";
+              GO111MODULE = "on";
+              GOPROXY = "direct";
+              GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+              GOFLAGS = "-mod=vendor -trimpath";
+              GONOPROXY = GOPRIVATE;
+              GONOSUMDB = GOPRIVATE;
+            };
+          };
+
           buildCthulhuBins = {
             cthulhu ? self.inputs.cthulhu,
             name ? "cthulhu-bins",
@@ -363,64 +454,17 @@
 
           do-internal = prev.symlinkJoin rec {
             name = "do-internal";
-            paths = with self.inputs.do-nixpkgs.packages.${prev.system};
-              [
-                (prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")
-                (prev.writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-                (prev.writeShellApplication {
-                  name = "ghe";
-                  runtimeInputs = with prev; [gh];
-                  text = prev.lib.concatStringsSep " " ["exec" "env" "GH_HOST='github.internal.digitalocean.com'" "gh" "\"$@\""];
-                })
-                (prev.writeShellApplication {
-                  name = "vault";
-                  runtimeInputs = with prev; [vault];
-                  text = prev.lib.concatStringsSep " " ["exec" "env" "VAULT_CACERT=${sammyca}" "VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200" "vault" "\"$@\""];
-                })
-                (prev.writeShellApplication {
-                  name = "vpn";
-                  runtimeInputs = with prev; [pass coreutils gnused openconnect];
-                  text = let
-                    _a = "$";
-                  in ''
-                    # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
-                    [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
-                    [[ -n "$USER" ]] || read -r -p "USER: " USER
-                    [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
-                    CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
-                    declare -a vpn_args=( --protocol=gp )
-                    vpn_args+=( --csd-wrapper=${prev.openconnect}/libexec/openconnect/hipreport.sh )
-                    vpn_args+=( -F _challenge:passwd="$MFA" )
-                    vpn_args+=( --background )
-                    vpn_args+=( --pid-file=/run/vpn.pid )
-                    vpn_args+=( --os=linux-64 )
-                    vpn_args+=( --passwd-on-stdin )
-                    vpn_args+=( -F _login:user="$USER" )
-                    vpn_args+=( "$CONNECT_URL" )
-                    set -x
-                    exec sudo openconnect "${_a}{vpn_args[@]}"
-                  '';
-                })
-              ]
-              ++ (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
+            paths = prev.lib.concatLists [
+              [(prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")]
+              (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
                 # Project-based Packages
-                "project-artifact"
                 "project-deptracker"
                 "project-dns"
                 "project-docc"
                 "project-droplet"
-                "project-harpoon"
-                "project-hvrouter"
-                "project-netsecpol"
-                "project-networktracerd"
-                "project-north"
-                "project-orca2"
-                "project-plinkod"
-                "project-respond"
-                "project-rmetadata"
-                "project-south"
-                "project-telemetry"
                 # Individual packages (a la carte)
+                "artifactctl"
+                "docc"
                 "autoreview"
                 "certdump"
                 "certtool"
@@ -440,7 +484,8 @@
                 "staff-cert"
                 "tracectl"
                 "vault"
-              ]);
+              ])
+            ];
           };
         };
     };
@@ -531,9 +576,6 @@
                   lla = "${lib.getExe pkgs.lsd} -la";
                   ls = lib.getExe pkgs.lsd;
                   lt = "${lib.getExe pkgs.lsd} --tree";
-                  systemctl-fzf-service = "systemctl --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'system services> '";
-                  systemctl-fzf-user-service = "systemctl --user --no-pager --no-legend list-unit-files | cut -d' ' -f1 | sk -mp 'user services> '";
-                  systemctl-edit = "sudo systemctl edit --full --force";
                   tmux = "tmux -2u";
                   dmesg = "sudo dmesg";
                   tf = "terraform";
@@ -870,8 +912,6 @@
                   "w3m"
                   "zstd"
                 ])
-                (with pkgs; [
-                ])
               ];
 
               # This value determines the NixOS release from which the default
@@ -896,9 +936,8 @@
       }: {
         programs.xwayland.enable = true;
         environment.etc = {
-          "sway/config".text = builtins.readFile ./pkg/sway_config;
-          "sway/status.toml".text = builtins.readFile ./pkg/sway_status.toml;
-          "i3/config".text = builtins.readFile ./pkg/i3_config;
+          "sway/config".text = builtins.readFile ./pkg/sway/config;
+          "sway/status.toml".text = builtins.readFile ./pkg/sway/i3status.toml;
           "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
             "font_family DaddyTimeMono Nerd Font"
             "editor ${lib.getExe pkgs.neovim}"
@@ -1181,15 +1220,46 @@
           self.inputs.do-nixpkgs.nixosModules.kolide-launcher
           self.inputs.do-nixpkgs.nixosModules.sentinelone
         ];
-        # security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
+        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
         services.sentinelone.enable = true;
         services.kolide-launcher.enable = true;
         services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         system.nixos.tags = ["digitalocean"];
         networking.hosts = prefs.networking.hosts;
-        environment.systemPackages = [pkgs.do-internal];
-
+        environment.variables.VAULT_CACERT = "${pkgs.do-nixpkgs.sammyca}";
+        environment.variables.GHE_HOST = "github.internal.digitalocean.com";
+        environment.variables.VAULT_ADDR = "https://vault-api.internal.digitalocean.com:8200";
+        environment.systemPackages = with pkgs; [
+          do-internal
+          dao
+          vault
+          openconnect
+          (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+          (writeShellApplication {
+            name = "ghe";
+            runtimeInputs = with pkgs; [gh];
+            text = "exec env GH_HOST=github.internal.digitalocean.com gh \"$@\"";
+          })
+          (writeShellScriptBin "vpn" ''
+            # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
+            [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
+            [[ -n "$USER" ]] || read -r -p "USER: " USER
+            [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
+            CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
+            PKG_DIR="$(dirname $(dirname $(readlink $(which openconnect))))"
+            declare -a vpn_args=( --protocol=gp )
+            vpn_args+=( --csd-wrapper=$PKG_DIR/libexec/openconnect/hipreport.sh )
+            vpn_args+=( -F _challenge:passwd="$MFA" )
+            vpn_args+=( --background )
+            vpn_args+=( --pid-file=$HOME/.local/vpn.pid )
+            vpn_args+=( --os=linux-64 )
+            vpn_args+=( --passwd-on-stdin )
+            vpn_args+=( -F _login:user="$USER" )
+            vpn_args+=( "$CONNECT_URL" )
+            set -x && sudo openconnect "''${vpn_args[@]}"
+          '')
+        ];
         systemd = {
           slices.compliance.enable = true;
           services.sentinelone = {
@@ -1332,9 +1402,10 @@
           {
             users = [prefs.user.login];
             runAs = "root";
-            commands =
+            commands = lib.concatLists [
               ["ALL"]
-              ++ (builtins.map (name: {
+
+              (builtins.map (name: {
                   command = "/run/current-system/sw/bin/${name}";
                   options = ["NOSETENV" "NOPASSWD"];
                 }) [
@@ -1345,10 +1416,13 @@
                   "system"
                   "systemd-cgls"
                   "systemd-cgtop"
-                  "openconnect"
                   "dmesg"
                   "systemctl"
-                ]);
+                  "openconnect"
+                  "kill"
+                  "killall"
+                ])
+            ];
           }
         ];
       };
@@ -1387,7 +1461,7 @@
         drv = pkgs.neovim;
         exePath = "/bin/nvim";
       };
-      default = self.lib.mkApp { drv = pkgs.system-cli; };
+      default = self.lib.mkApp {drv = pkgs.system-cli;};
     });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
