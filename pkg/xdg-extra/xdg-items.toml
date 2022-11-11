@@ -1,12 +1,3 @@
-repo.path = "/home/jlogemann/laptop"
-host.name = "laptop"
-host.arch = "x86_64"
-host.os = "linux"
-user.login = "jlogemann"
-user.email = "jlogemann@digitalocean.com"
-user.firstName = "Jake"
-user.lastName = "Logemann"
-
 internalHostnames = [
   "architecture",
   "artifactory",
