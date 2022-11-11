@@ -1,10 +1,11 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-    nix-filter.url = "github:numtide/nix-filter";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     nixos-templates.url = "github:nixos/templates";
+    pnix.url = "github:polis-dev/pnix";
 
     nmd = {
       url = "gitlab:rycee/nmd";
@@ -14,6 +15,12 @@
     nmt = {
       url = "gitlab:rycee/nmt";
       flake = false;
+    };
+
+    helix = {
+      url = "github:helix-editor/helix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
 
     cntr = {
@@ -39,7 +46,7 @@
       flake = false;
     };
 
-    naersk = {
+    naersk-lib = {
       url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -58,6 +65,11 @@
       inputs.flake-utils.follows = "flake-utils";
     };
 
+    zsh-autocomplete = {
+      url = "github:marlonrichert/zsh-autocomplete";
+      flake = false;
+    };
+
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -66,7 +78,7 @@
     nixpkgs-lint = {
       url = "github:nix-community/nixpkgs-lint";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.naersk.follows = "naersk";
+      inputs.naersk.follows = "naersk-lib";
       inputs.flake-compat.follows = "flake-compat";
       inputs.utils.follows = "flake-utils";
     };
@@ -181,17 +193,19 @@
     };
 
     do-nixpkgs = {
-      url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      # url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      url = "/home/jlogemann/laptop/vendor/do-nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
       inputs.cthulhu.follows = "cthulhu";
       inputs.pre-commit-hooks.follows = "pre-commit-hooks";
-      inputs.naersk.follows = "naersk";
+      inputs.naersk-lib.follows = "naersk-lib";
     };
   };
 
   outputs = {
     self,
+    pnix,
     nixpkgs,
     flake-utils,
     ...
@@ -200,7 +214,7 @@
     preferences are loaded from a TOML file located in this directory. the data
     in here is free-form and should be kept as minimalist as possible.
     */
-    prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
+    prefs = pnix.lib.fromTOMLFile ./prefs.toml;
   in {
     overlays = {
       rust = self.inputs.rust-overlay.overlays.default;
@@ -209,8 +223,9 @@
         callPackage = prev.lib.callPackageWith (prev // {inherit self prefs;});
       in rec {
         gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
-        neovim = callPackage ./pkg/nvim/default.nix {};
-
+        neovim = callPackage ./nvim {};
+        nixpkgs-lint = self.inputs.nixpkgs-lint.packages.${prev.system}.default;
+        helix = self.inputs.helix.packages.${prev.system}.helix;
         system-cli = prev.writeShellApplication {
           name = "system";
           runtimeInputs = with prev; [
@@ -254,8 +269,8 @@
           name = "my-nixtools";
           paths = with prev; [
             alejandra
-            self.inputs.nixpkgs-lint.packages.${prev.system}.default
             nixos-rebuild
+            nixpkgs-lint
             nvd
             nix
           ];
@@ -264,11 +279,23 @@
         my-rustools = prev.symlinkJoin {
           name = "my-rustools";
           paths = with prev; [
+            cargo-bloat
+            cargo-deny
+            cargo-edit
+            cargo-vet
+            cargo-expand
+            cargo-outdated
+            cargo-public-api
+            cargo-tarpaulin
+            cargo-udeps
+            cargo-watch
+            cargo-web
+            helix
             llvm
             llvm-manpages
+            rust-analyzer
             rustup
             rusty-man
-            rust-analyzer
           ];
         };
 
@@ -285,6 +312,7 @@
             nerdctl
             packer
             qemu_full
+            lima
             self.inputs.cntr.packages.${prev.system}.cntr
             skopeo
           ];
@@ -321,6 +349,7 @@
         my-commontools = prev.symlinkJoin {
           name = "my-commontools";
           paths = with prev; [
+            fd
             bat
             coreutils
             cue
@@ -352,6 +381,9 @@
           name = "my-gotools";
           paths = with prev; [
             go
+            cuelsp
+            cuetools
+            delve
             grpcurl
             gomod2nix
             go-cve-search
@@ -370,7 +402,7 @@
       digitalocean = next: prev:
         with prev; {
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
-          fly = self.inputs.do-nixpkgs.packages.${prev.system}.fly;
+          inherit (self.inputs.do-nixpkgs.packages.${prev.system}) fly sammyca;
 
           dao = buildGoModule rec {
             name = "dao";
@@ -410,9 +442,9 @@
             };
           };
 
-          buildCthulhuBins = {
-            cthulhu ? self.inputs.cthulhu,
-            name ? "cthulhu-bins",
+          cthulhu = {
+            cthulhuSrc ? self.inputs.cthulhu,
+            name ? "cthulhu",
             subPackages ? [
               "doge/dorpc/protoc-gen-dorpc"
               "teams/compute/orca2/cmd/explainer"
@@ -446,14 +478,14 @@
                 "-X do/doge/version.commit=${version}"
                 "-X do/doge/version.gitTreeState=clean"
               ];
-              src = builtins.toString cthulhu;
+              src = builtins.toString cthulhuSrc;
               modRoot = "${src}/docode/src/do";
               vendorSha256 = null;
               version =
-                if cthulhu ? "shortRev"
-                then cthulhu.shortRev
-                else if cthulhu ? "rev"
-                then cthulhu.rev
+                if cthulhuSrc ? "shortRev"
+                then cthulhuSrc.shortRev
+                else if cthulhuSrc ? "rev"
+                then cthulhuSrc.rev
                 else "dev";
               doCheck = false;
               nativeBuildInputs = lib.concatLists [
@@ -470,42 +502,6 @@
                 GONOSUMDB = GOPRIVATE;
               };
             };
-
-          do-internal = prev.symlinkJoin rec {
-            name = "do-internal";
-            paths = prev.lib.concatLists [
-              [(prev.writeShellScriptBin name "exec dirname $(dirname $(readlink $(which $0)))")]
-              (builtins.map (p: self.inputs.do-nixpkgs.packages."${prev.system}"."${p}") [
-                # Project-based Packages
-                "project-deptracker"
-                "project-dns"
-                "project-docc"
-                "project-droplet"
-                # Individual packages (a la carte)
-                "artifactctl"
-                "docc"
-                "autoreview"
-                "certdump"
-                "certtool"
-                "deployer"
-                "fly"
-                "gitdash"
-                "hvaddrctl"
-                "hvannouncectl"
-                "hvrouterctl"
-                "ipamgetctl"
-                "jump"
-                "gen-dorpc-proto"
-                "ghz"
-                "jsonnet"
-                "plinkoctl"
-                "respondctl"
-                "staff-cert"
-                "tracectl"
-                "vault"
-              ])
-            ];
-          };
         };
     };
 
@@ -530,6 +526,8 @@
               hardware.gpgSmartcards.enable = true;
               time.hardwareClockInLocalTime = true;
               time.timeZone = "America/New_York";
+              services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
+
 
               boot = {
                 binfmt.emulatedSystems = ["aarch64-linux"];
@@ -599,6 +597,11 @@
                   tf = "terraform";
                   dc = "docker compose";
                   g = "git";
+                  gs = "git status";
+                  gb = "git branch";
+                  grb = "git rebase";
+                  grs = "git reset";
+                  grt = "git restore";
                   find-broken-symlinks = "find -L . -type l 2>/dev/null";
                   rm-broken-symlinks = "find -L . -type l -exec rm -fv {} \; 2>/dev/null";
                 };
@@ -607,20 +610,12 @@
                   BAT_STYLE = "header-filename,grid";
                   BROWSER = lib.getExe pkgs.firefox-devedition-bin;
                   PAGER = lib.getExe pkgs.bat;
-                  GO111MODULE = "on";
-                  GOFLAGS = "-mod=vendor";
-                  GONOPROXY = "*.internal.digitalocean.com,github.com/digitalocean";
-                  GONOSUMDB = "*.internal.digitalocean.com,github.com/digitalocean";
-                  GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
-                  GOPROXY = "direct";
-                  GOSUMDB = "sum.golang.org";
-                  CGO_ENABLED = "0";
                 };
               };
 
               fonts = {
                 enableDefaultFonts = true;
-                fonts = builtins.map (p: pkgs.${p}) prefs.packages.fonts;
+                fonts = with pkgs; [nerdfonts dejavu_fonts terminus-nerdfont];
                 fontconfig = {
                   enable = true;
                   antialias = true;
@@ -645,8 +640,9 @@
               };
 
               networking = {
-                dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
+                # dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
                 hostName = prefs.host.name;
+                nameservers = ["8.8.8.8" "8.8.4.4"];
                 domain = "local";
                 enableIPv6 = true;
 
@@ -657,7 +653,7 @@
                   autoLoadConntrackHelpers = false;
                   checkReversePath = false;
                   enable = true;
-                  extraPackages = with pkgs; [ ipset ];
+                  extraPackages = with pkgs; [ipset];
                   logRefusedConnections = true;
                   logRefusedPackets = true;
                   logRefusedUnicastsOnly = true;
@@ -665,13 +661,6 @@
                   pingLimit = "--limit 1/minute --limit-burst 5";
                   rejectPackets = true;
                 };
-
-                nameservers =
-                  prefs.dns.v4.ns
-                  ++ [
-                    "8.8.8.8"
-                    "8.8.4.4"
-                  ];
 
                 #   resolvconf.enable = lib.mkForce false;
                 useDHCP = true;
@@ -695,6 +684,8 @@
                 settings.auto-optimise-store = true;
                 settings.cores = 2;
                 settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
+                settings.extra-substituters = ["https://helix.cachix.org"];
+                settings.extra-trusted-public-keys = ["helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="];
                 settings.log-lines = 50;
                 settings.max-free = 64 * 1024 * 1024 * 1024;
                 settings.system-features = ["kvm"];
@@ -703,6 +694,7 @@
 
               nixpkgs.config.allowUnfree = true;
               nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
+
 
               programs = {
                 kbdlight.enable = true;
@@ -772,7 +764,7 @@
                 };
 
                 ssh = {
-                  extraConfig = builtins.readFile ./pkg/ssh_config;
+                  extraConfig = builtins.readFile ./.ssh/config;
                   forwardX11 = false;
                   hostKeyAlgorithms = ["ecdsa-sha2-nistp256" "ssh-ed25519" "ssh-rsa"];
                   setXAuthLocation = false;
@@ -810,7 +802,8 @@
                     eval "$(${lib.getExe pkgs.navi} widget zsh)"
                     eval "$(${lib.getExe pkgs.zoxide} init zsh)"
                     source "${pkgs.skim}/share/skim/key-bindings.zsh"
-                    source ${./pkg/zshrc}
+                    # source "${self.inputs.zsh-autocomplete.outPath}/zsh-autocomplete.plugin.zsh"
+                    source ${./.zshrc}
                   '';
                 };
 
@@ -827,7 +820,9 @@
                 forcePageTableIsolation = true;
                 lockKernelModules = true;
                 pam.enableEcryptfs = true;
-                pam.u2f.authFile = ./pkg/u2f-authfile;
+                pam.u2f.authFile = builtins.toFile "u2f-authfile" ''
+                  ${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence
+                '';
                 pam.u2f.control = "sufficient";
                 pam.u2f.enable = true;
                 polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
@@ -847,8 +842,23 @@
                 journald.forwardToSyslog = false;
                 tlp.enable = true;
                 upower.enable = true;
+                /*
+                X11 Login Configuration
+                */
+                xserver = {
+                  autorun = false;
+                 displayManager.autoLogin.user = prefs.user.login;
+                  displayManager.autoLogin.enable = true;
+                  enable = false;
+                  enableCtrlAltBackspace = true;
+                  displayManager.defaultSession = "sway";
+                  layout = "us";
+                  libinput.touchpad.disableWhileTyping = true;
+                  videoDrivers = ["modesetting"];
+                  xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
+                };
                 nomad = {
-                  enable = true;
+                  enable = false;
                   enableDocker = false;
                   settings.server.enabled = true;
                   settings.client.enabled = true;
@@ -924,30 +934,22 @@
                 };
               };
 
-              environment.systemPackages = lib.concatLists [
-                (builtins.map (p: pkgs."${p}") [
-                  "_1password"
-                  "aide"
-                  "commitlint"
-                  "cuelsp"
-                  "cuetools"
-                  "delve"
-                  "expect"
-                  "fd"
-                  "graphviz"
-                  "jless"
-                  "system-cli"
-                  "my-commontools"
-                  "my-systools"
-                  "my-nixtools"
-                  "my-virtools"
-                  "neovim"
-                  "ossec"
-                  "pass"
-                  "topgrade"
-                  "w3m"
-                  "zstd"
-                ])
+              environment.systemPackages = with pkgs; [
+                _1password
+                aide
+                commitlint
+                expect
+                graphviz
+                system-cli
+                my-commontools
+                my-systools
+                my-nixtools
+                my-virtools
+                neovim
+                ossec
+                pass
+                w3m
+                zstd
               ];
 
               # This value determines the NixOS release from which the default
@@ -968,103 +970,7 @@
     };
 
     nixosModules = {
-      sway = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        programs.xwayland.enable = true;
-        environment.etc = {
-          "sway/config".text = builtins.readFile ./pkg/sway/config;
-          "sway/status.toml".text = builtins.readFile ./pkg/sway/i3status.toml;
-          "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
-            "font_family DaddyTimeMono Nerd Font"
-            "editor ${lib.getExe pkgs.neovim}"
-          ];
-        };
-        services.xserver = {
-          autorun = true;
-          displayManager.autoLogin.enable = true;
-          displayManager.autoLogin.user = prefs.user.login;
-          displayManager.defaultSession = "sway";
-          enable = true;
-          enableCtrlAltBackspace = true;
-          layout = "us";
-          libinput.touchpad.disableWhileTyping = true;
-          videoDrivers = ["modesetting"];
-          windowManager.i3.enable = true;
-          windowManager.i3.package = pkgs.i3-gaps;
-          xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
-        };
-        programs.sway = {
-          enable = true;
-          wrapperFeatures.base = true;
-          wrapperFeatures.gtk = true;
-          extraPackages = with pkgs; [
-            swaylock
-            firefox-wayland
-            dmenu
-            foot
-            swayidle
-            wofi
-            light
-            wl-clipboard
-            i3status-rust
-          ];
-
-          extraSessionCommands = ''
-            # SDL:
-            export SDL_VIDEODRIVER=wayland
-            # QT (needs qt5.qtwayland in systemPackages):
-            export QT_QPA_PLATFORM=wayland-egl
-            export QT_WAYLAND_DISABLE_WINDOWDECORATION="1"
-            # Fix for some Java AWT applications (e.g. Android Studio),
-            # use this if they aren't displayed properly:
-            export _JAVA_AWT_WM_NONREPARENTING=1
-          '';
-        };
-        xdg.mime = {
-          enable = true;
-          defaultApplications."application/pdf" = "firefox.desktop";
-          removedAssociations."audio/mp3" = ["mpv.desktop" "umpv.desktop"];
-          removedAssociations."inode/directory" = "codium.desktop";
-        };
-
-        environment.systemPackages = lib.concatLists [
-          (with pkgs; [
-            _1password-gui
-            # arandr xbindkeys xclip xdotool scrot
-            slack
-            kitty
-            kitty-themes
-            logseq
-            firefox
-            firefox-devedition-bin
-
-            (writeShellApplication {
-              name = "rofi";
-              runtimeInputs = [rofi terminus-nerdfont];
-              text = lib.concatStringsSep " " [
-                "exec rofi"
-                "-markup"
-                "-modi drun,ssh,window,run"
-                "-font 'DaddyTimeMono Nerd Font 12'"
-                "\"$@\""
-              ];
-            })
-          ])
-
-          (builtins.map (entry:
-            pkgs.makeDesktopItem {
-              name = "internal-${entry}";
-              desktopName = "Open ${entry}.internal.";
-              exec = "xdg-open https://${entry}.internal.digitalocean.com";
-            })
-          prefs.internalHostnames)
-          (builtins.map (entry: pkgs.makeDesktopItem entry) prefs.desktopItem)
-        ];
-      };
+      sway = import ./desktop/module.nix;
 
       dns = {
         config,
@@ -1171,7 +1077,7 @@
             }));
 
             forwarding_rules = let
-              iDNS = lib.concatStringsSep "," prefs.dns.v4.ns;
+              iDNS = lib.concatStringsSep "," ["10.124.57.141" "10.124.57.160"];
             in
               pkgs.writeText "forwarding_rules" (lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "${name}  ${value}") {
                 "do.co" = iDNS;
@@ -1260,24 +1166,19 @@
         security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
         services.sentinelone.enable = false;
         services.kolide-launcher.enable = true;
-        services.kolide-launcher.secretFilepath = "/home/${prefs.user.login}/.do/kolide.secret";
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         system.nixos.tags = ["digitalocean"];
-        networking.hosts = prefs.networking.hosts;
-        environment.variables.VAULT_CACERT = "${pkgs.do-nixpkgs.sammyca}";
-        environment.variables.GHE_HOST = "github.internal.digitalocean.com";
-        environment.variables.VAULT_ADDR = "https://vault-api.internal.digitalocean.com:8200";
+        networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
+        networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
+        networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
+        networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
         environment.systemPackages = with pkgs; [
-          do-internal
+          (cthulhu {})
           dao
-          vault
           openconnect
           (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-          (writeShellApplication {
-            name = "ghe";
-            runtimeInputs = with pkgs; [gh];
-            text = "exec env GH_HOST=github.internal.digitalocean.com gh \"$@\"";
-          })
+          (writeShellScriptBin "ghe" "exec env GH_HOST=github.internal.digitalocean.com ${lib.getExe gh} \"$@\"")
+          (writeShellScriptBin "vault" "exec env VAULT_CACERT=${sammyca} VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200 ${lib.getExe vault} \"$@\"")
           (writeShellScriptBin "vpn" ''
             # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
             [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
@@ -1353,7 +1254,7 @@
         system.nixos.tags = ["x1c8"];
         boot.initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
         imports = [
-          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
+          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-9th-gen
         ];
 
         boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
@@ -1366,12 +1267,11 @@
         hardware.opengl.enable = true;
         hardware.sensor.hddtemp.enable = true;
         hardware.sensor.hddtemp.drives = ["/dev/disk/by-path/*"];
-        hardware.video.hidpi.enable= true;
+        hardware.video.hidpi.enable = true;
         hardware.sensor.iio.enable = true;
         hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
         hardware.pulseaudio.enable = true;
         hardware.bluetooth.enable = true;
-        hardware.bluetooth.package = pkgs.bluez5-experimental;
         hardware.uinput.enable = true;
         networking.wireless.interfaces = ["wlan0"];
         networking.wireless.iwd.enable = true;
@@ -1382,16 +1282,16 @@
         sound.enable = true;
         sound.mediaKeys.enable = true;
 
-        boot.extraModprobeConfig = ''
-          options kvm_intel nested=1
-          options iwlwifi disable_11ax=1
-        '';
+        boot.extraModprobeConfig = builtins.concatStringsSep "\n" [
+          "options kvm_intel nested=1"
+          "options iwlwifi disable_11ax=1"
+        ];
 
         boot.extraModulePackages = with pkgs; [
           linuxPackages_latest.acpi_call
           linuxPackages_latest.cpupower
           linuxPackages_latest.tp_smapi
-          linuxPackages_latest.bpftrace
+          # linuxPackages_latest.bpftrace
           tpm2-tools
           tpm2-tss
           i2c-tools
@@ -1442,6 +1342,7 @@
         users.groups.${login}.members = [login];
         system.nixos.tags = [login];
 
+
         security.sudo.extraRules = [
           {
             users = [prefs.user.login];
@@ -1472,22 +1373,9 @@
       };
     };
 
-    lib = rec {
-      inherit (flake-utils.lib) filterPackages mkApp check-utils;
-      supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux"];
-      eachSystem = flake-utils.lib.eachSystem supportedSystems;
-      eachSystemMap = flake-utils.lib.eachSystemMap supportedSystems;
-      overlaysList = builtins.attrValues self.overlays;
-      modulesList = builtins.attrValues self.nixosModules;
-      withPkgs = f:
-        eachSystemMap (system:
-          f (import nixpkgs {
-            inherit system;
-            overlays = overlaysList;
-          }));
-    };
+    lib = import ./lib.nix self;
 
-    packages = self.lib.withPkgs (pkgs: {
+    packages = self.lib.eachSystemWithPkgs (pkgs: {
       inherit (pkgs) neovim system-cli;
     });
 
@@ -1526,7 +1414,11 @@
 
         rust = mkShell {
           name = "my rust env";
-          nativeBuildInputs = [my-commontools my-rustools neovim];
+          nativeBuildInputs = [
+            my-commontools
+            my-rustools
+            neovim
+          ];
         };
 
         nix = mkShell {
