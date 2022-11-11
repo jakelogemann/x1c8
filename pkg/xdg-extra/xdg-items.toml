@@ -46,48 +46,48 @@ internalHostnames = [
 ]
 
 [[desktopItem]]
-name = "system-repl"
-desktopName = "System REPL"
-comment = "Interactive 'System' Shell"
-exec = "kitty --hold system repl"
+Name = "system-repl"
+DesktopName = "System REPL"
+Comment = "Interactive 'System' Shell"
+Exec = "kitty --hold system repl"
 
 [[desktopItem]]
-name = "system-edit"
-desktopName = "System Edit"
-comment = "Edit the current system's configuration"
-exec = "kitty -1 --instance-group=system-edit system edit"
+Name = "system-edit"
+DesktopName = "System Edit"
+Comment = "Edit the current system's configuration"
+Exec = "kitty -1 --instance-group=system-edit system edit"
 
 [[desktopItem]]
-name = "system-switch"
-desktopName = "System Switch"
-exec = "kitty --hold -1 --instance-group=system-build sudo system switch"
+Name = "system-switch"
+DesktopName = "System Switch"
+Exec = "kitty --hold -1 --instance-group=system-build sudo system switch"
 
 [[desktopItem]]
-name = "system-build"
-desktopName = "System Build"
-exec = "kitty --hold -1 --instance-group=system-build system build"
+Name = "system-build"
+DesktopName = "System Build"
+Exec = "kitty --hold -1 --instance-group=system-build system build"
 
 [[desktopItem]]
-name = "system-options"
-desktopName = "System Options Document"
-exec = "kitty w3m file:///run/current-system/sw/share/doc/nixos/options.html"
+Name = "system-options"
+DesktopName = "System Options Document"
+Exec = "kitty w3m file:///run/current-system/sw/share/doc/nixos/options.html"
 
 [[desktopItem]]
-name = "sway"
-desktopName = "Launch Sway"
-exec = "sway -c /etc/sway/config"
+Name = "sway"
+DesktopName = "Launch Sway"
+Exec = "sway -c /etc/sway/config"
 
 [[desktopItem]]
-name = "ghe-cicd"
-desktopName = "Repo: CI/CD"
-exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cicd"
+Name = "ghe-cicd"
+DesktopName = "Repo: CI/CD"
+Exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cicd"
 
 [[desktopItem]]
-name = "ghe-backstage-app"
-desktopName = "Repo: Backstage (ServiceCatalog)"
-exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/backstage-app"
+Name = "ghe-backstage-app"
+DesktopName = "Repo: Backstage (ServiceCatalog)"
+Exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/backstage-app"
 
 [[desktopItem]]
-name = "ghe-cthulhu"
-desktopName = "Repo: Cthulhu"
-exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cthulhu/blob/master/docode/src/do"
+Name = "ghe-cthulhu"
+DesktopName = "Repo: Cthulhu"
+Exec = "xdg-open https://github.internal.digitalocean.com/digitalocean/cthulhu/blob/master/docode/src/do"
