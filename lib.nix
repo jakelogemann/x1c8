@@ -2,6 +2,7 @@ self: let
   inherit (self.inputs) flake-utils nixpkgs;
 in rec {
   inherit (flake-utils.lib) filterPackages mkApp check-utils;
+  pnix = self.inputs.pnix.lib;
   supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux"];
   eachSystem = flake-utils.lib.eachSystem supportedSystems;
   eachSystemMap = flake-utils.lib.eachSystemMap supportedSystems;

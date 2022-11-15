@@ -1,10 +1,12 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-    nix-filter.url = "github:numtide/nix-filter";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     nixos-templates.url = "github:nixos/templates";
+    pnix.url = "github:polis-dev/pnix";
+    # pnix.url = "/home/jlogemann/laptop/vendor/pnix";
 
     nmd = {
       url = "gitlab:rycee/nmd";
@@ -14,6 +16,12 @@
     nmt = {
       url = "gitlab:rycee/nmt";
       flake = false;
+    };
+
+    helix = {
+      url = "github:helix-editor/helix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
 
     cntr = {
@@ -39,7 +47,7 @@
       flake = false;
     };
 
-    naersk = {
+    naersk-lib = {
       url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -58,6 +66,11 @@
       inputs.flake-utils.follows = "flake-utils";
     };
 
+    zsh-autocomplete = {
+      url = "github:marlonrichert/zsh-autocomplete";
+      flake = false;
+    };
+
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -66,7 +79,7 @@
     nixpkgs-lint = {
       url = "github:nix-community/nixpkgs-lint";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.naersk.follows = "naersk";
+      inputs.naersk.follows = "naersk-lib";
       inputs.flake-compat.follows = "flake-compat";
       inputs.utils.follows = "flake-utils";
     };
@@ -181,17 +194,19 @@
     };
 
     do-nixpkgs = {
-      url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      # url = "git+https://github.internal.digitalocean.com/digitalocean/do-nixpkgs?ref=master";
+      url = "/home/jlogemann/laptop/vendor/do-nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
       inputs.cthulhu.follows = "cthulhu";
       inputs.pre-commit-hooks.follows = "pre-commit-hooks";
-      inputs.naersk.follows = "naersk";
+      inputs.naersk-lib.follows = "naersk-lib";
     };
   };
 
   outputs = {
     self,
+    pnix,
     nixpkgs,
     flake-utils,
     ...
@@ -200,7 +215,7 @@
     preferences are loaded from a TOML file located in this directory. the data
     in here is free-form and should be kept as minimalist as possible.
     */
-    prefs = builtins.fromTOML (builtins.readFile ./prefs.toml);
+    prefs = pnix.lib.fromTOMLFile ./prefs.toml;
   in {
     overlays = {
       rust = self.inputs.rust-overlay.overlays.default;
@@ -210,9 +225,8 @@
       in rec {
         gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
         neovim = callPackage ./pkg/nvim/default.nix {};
-        xdg-extra = callPackage ./pkg/xdg-extra/default.nix {};
         nixpkgs-lint = self.inputs.nixpkgs-lint.packages.${prev.system}.default;
-
+        helix = self.inputs.helix.packages.${prev.system}.helix;
         system-cli = prev.writeShellApplication {
           name = "system";
           runtimeInputs = with prev; [
@@ -266,11 +280,23 @@
         my-rustools = prev.symlinkJoin {
           name = "my-rustools";
           paths = with prev; [
+            cargo-bloat
+            cargo-deny
+            cargo-edit
+            cargo-vet
+            cargo-expand
+            cargo-outdated
+            cargo-public-api
+            cargo-tarpaulin
+            cargo-udeps
+            cargo-watch
+            cargo-web
+            helix
             llvm
             llvm-manpages
+            rust-analyzer
             rustup
             rusty-man
-            rust-analyzer
           ];
         };
 
@@ -287,6 +313,7 @@
             nerdctl
             packer
             qemu_full
+            lima
             self.inputs.cntr.packages.${prev.system}.cntr
             skopeo
           ];
@@ -502,6 +529,7 @@
               time.timeZone = "America/New_York";
               services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
 
+
               boot = {
                 binfmt.emulatedSystems = ["aarch64-linux"];
                 enableContainers = true;
@@ -613,7 +641,7 @@
               };
 
               networking = {
-                dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
+                # dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
                 hostName = prefs.host.name;
                 nameservers = ["8.8.8.8" "8.8.4.4"];
                 domain = "local";
@@ -657,6 +685,8 @@
                 settings.auto-optimise-store = true;
                 settings.cores = 2;
                 settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
+                settings.extra-substituters = ["https://helix.cachix.org"];
+                settings.extra-trusted-public-keys = ["helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="];
                 settings.log-lines = 50;
                 settings.max-free = 64 * 1024 * 1024 * 1024;
                 settings.system-features = ["kvm"];
@@ -665,6 +695,7 @@
 
               nixpkgs.config.allowUnfree = true;
               nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
+
 
               programs = {
                 kbdlight.enable = true;
@@ -772,6 +803,7 @@
                     eval "$(${lib.getExe pkgs.navi} widget zsh)"
                     eval "$(${lib.getExe pkgs.zoxide} init zsh)"
                     source "${pkgs.skim}/share/skim/key-bindings.zsh"
+                    # source "${self.inputs.zsh-autocomplete.outPath}/zsh-autocomplete.plugin.zsh"
                     source ${./pkg/zshrc}
                   '';
                 };
@@ -809,8 +841,23 @@
                 journald.forwardToSyslog = false;
                 tlp.enable = true;
                 upower.enable = true;
+                /*
+                X11 Login Configuration
+                */
+                xserver = {
+                  autorun = false;
+                 displayManager.autoLogin.user = prefs.user.login;
+                  displayManager.autoLogin.enable = true;
+                  enable = false;
+                  enableCtrlAltBackspace = true;
+                  displayManager.defaultSession = "sway";
+                  layout = "us";
+                  libinput.touchpad.disableWhileTyping = true;
+                  videoDrivers = ["modesetting"];
+                  xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
+                };
                 nomad = {
-                  enable = true;
+                  enable = false;
                   enableDocker = false;
                   settings.server.enabled = true;
                   settings.client.enabled = true;
@@ -922,94 +969,7 @@
     };
 
     nixosModules = {
-      sway = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        programs.xwayland.enable = true;
-        environment.etc = {
-          "sway/config".text = builtins.readFile ./pkg/sway/config;
-          "sway/status.toml".text = builtins.readFile ./pkg/sway/i3status.toml;
-          "xdg/kitty/kitty.conf".text = lib.concatStringsSep "\n" [
-            "font_family DaddyTimeMono Nerd Font"
-            "editor ${lib.getExe pkgs.neovim}"
-          ];
-        };
-        services.xserver = {
-          autorun = true;
-          displayManager.autoLogin.enable = true;
-          displayManager.autoLogin.user = prefs.user.login;
-          displayManager.defaultSession = "sway";
-          enable = true;
-          enableCtrlAltBackspace = true;
-          layout = "us";
-          libinput.touchpad.disableWhileTyping = true;
-          videoDrivers = ["modesetting"];
-          windowManager.i3.enable = true;
-          windowManager.i3.package = pkgs.i3-gaps;
-          xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
-        };
-        programs.sway = {
-          enable = true;
-          wrapperFeatures.base = true;
-          wrapperFeatures.gtk = true;
-          extraPackages = with pkgs; [
-            swaylock
-            firefox-wayland
-            dmenu
-            foot
-            swayidle
-            wofi
-            light
-            wl-clipboard
-            i3status-rust
-          ];
-
-          extraSessionCommands = ''
-            # SDL:
-            export SDL_VIDEODRIVER=wayland
-            # QT (needs qt5.qtwayland in systemPackages):
-            export QT_QPA_PLATFORM=wayland-egl
-            export QT_WAYLAND_DISABLE_WINDOWDECORATION="1"
-            # Fix for some Java AWT applications (e.g. Android Studio),
-            # use this if they aren't displayed properly:
-            export _JAVA_AWT_WM_NONREPARENTING=1
-          '';
-        };
-        xdg.mime = {
-          enable = true;
-          defaultApplications."application/pdf" = "firefox.desktop";
-          removedAssociations."audio/mp3" = ["mpv.desktop" "umpv.desktop"];
-          removedAssociations."inode/directory" = "codium.desktop";
-        };
-
-        environment.systemPackages = lib.concatLists [
-          (with pkgs; [
-            _1password-gui
-            # arandr xbindkeys xclip xdotool scrot
-            slack
-            kitty
-            kitty-themes
-            logseq
-            firefox
-            firefox-devedition-bin
-
-            (writeShellApplication {
-              name = "rofi";
-              runtimeInputs = [rofi terminus-nerdfont];
-              text = lib.concatStringsSep " " [
-                "exec rofi"
-                "-markup"
-                "-modi drun,ssh,window,run"
-                "-font 'DaddyTimeMono Nerd Font 12'"
-                "\"$@\""
-              ];
-            })
-          ])
-        ];
-      };
+      sway = import ./pkg/sway/module.nix;
 
       dns = {
         config,
@@ -1293,7 +1253,7 @@
         system.nixos.tags = ["x1c8"];
         boot.initrd.availableKernelModules = ["nvme" "usb_storage" "sd_mod"];
         imports = [
-          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-7th-gen
+          self.inputs.nixos-hardware.nixosModules.lenovo-thinkpad-x1-9th-gen
         ];
 
         boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
@@ -1311,7 +1271,6 @@
         hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
         hardware.pulseaudio.enable = true;
         hardware.bluetooth.enable = true;
-        hardware.bluetooth.package = pkgs.bluez5-experimental;
         hardware.uinput.enable = true;
         networking.wireless.interfaces = ["wlan0"];
         networking.wireless.iwd.enable = true;
@@ -1322,16 +1281,16 @@
         sound.enable = true;
         sound.mediaKeys.enable = true;
 
-        boot.extraModprobeConfig = ''
-          options kvm_intel nested=1
-          options iwlwifi disable_11ax=1
-        '';
+        boot.extraModprobeConfig = builtins.concatStringsSep "\n" [
+          "options kvm_intel nested=1"
+          # "options iwlwifi disable_11ax=1"
+        ];
 
         boot.extraModulePackages = with pkgs; [
           linuxPackages_latest.acpi_call
           linuxPackages_latest.cpupower
           linuxPackages_latest.tp_smapi
-          linuxPackages_latest.bpftrace
+          # linuxPackages_latest.bpftrace
           tpm2-tools
           tpm2-tss
           i2c-tools
@@ -1415,7 +1374,7 @@
     lib = import ./lib.nix self;
 
     packages = self.lib.eachSystemWithPkgs (pkgs: {
-      inherit (pkgs) neovim system-cli xdg-extra;
+      inherit (pkgs) neovim system-cli;
     });
 
     apps = self.lib.withPkgs (pkgs: {
@@ -1453,7 +1412,11 @@
 
         rust = mkShell {
           name = "my rust env";
-          nativeBuildInputs = [my-commontools my-rustools neovim];
+          nativeBuildInputs = [
+            my-commontools
+            my-rustools
+            neovim
+          ];
         };
 
         nix = mkShell {
