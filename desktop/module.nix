@@ -305,21 +305,21 @@ in {
           ];
 
           modules-center = [
-            "sway/window"
+            # "sway/window"
           ];
 
           modules-right = [
-            "battery"
             "clock"
-            "idle_inhibitor"
-            "pulseaudio"
-            "backlight"
+            "network"
+            "battery"
             "cpu"
             "memory"
+            # "sway/language"
+            "idle_inhibitor"
+            "backlight"
+            "pulseaudio"
             "temperature"
             "keyboard-state"
-            "network"
-            # "sway/language"
             "tray"
           ];
 
@@ -359,6 +359,9 @@ in {
             format = "{icon}";
             format-icons.activated = "";
             format-icons.deactivated = "";
+            tooltip = true;
+            tooltip-format-activated = "{icon}: Stay awake, inhibit idle.";
+            tooltip-format-deactivated = "{icon}: Default System Idle Policy";
           };
 
           tray.spacing = 10;
@@ -370,12 +373,14 @@ in {
           };
 
           cpu = {
-            format = "{usage}% ";
-            # tooltip = false;
+            format = " {usage}%";
+            tooltip = true;
           };
 
           memory = {
-            format = "{}% ";
+            format = "  {}%";
+            tooltip = true;
+            tooltip-format = " Memory Usage: {}%";
           };
 
           temperature = {
@@ -384,54 +389,69 @@ in {
             "hwmon-path"= "/sys/class/hwmon/hwmon2/temp1_input";
             */
             critical-threshold = 80;
-            format-critical = "{temperatureC}°C {icon}";
-            format = "{temperatureC}°C {icon}";
+            format = "{temperatureC}°C";
+            format-critical = "{icon} {temperatureC}°C";
             format-icons = ["" "" ""];
+            tooltip = true;
           };
 
           backlight = {
-            format = "{percent}% {icon}";
+            format = "{icon}";
+            tooltip = true;
+            tooltip-format = "Backlight: {percent}%";
             format-icons = ["" "" "" "" "" "" "" "" ""];
           };
 
           battery = {
-            states."good" = 95;
-            states."warning" = 30;
-            states."critical" = 15;
-            "format" = "{capacity}% {icon}";
-            "format-charging" = "{capacity}% ";
-            "format-plugged" = "{capacity}% ";
-            "format-alt" = "{time} {icon}";
-            "format-good" = "";
-            "format-full" = "";
-            format-icons = ["" "" "" "" ""];
+            states."good" = 75;
+            full-at = 95;
+            states."warning" = 35;
+            states."critical" = 20;
+            interval = 60;
+            format-time = "{H}h{M}m";
+            format = "{icon} ";
+            tooltip = true;
+            tooltip-format-default = "{icon} Battery is at {capacity}% ({timeTo})";
+            tooltip-format-charging = "  Charging {power} {timeTo} ({capacity}%)";
+            tooltip-format-plugged = "  Plugged in ({capacity}%)";
+            tooltip-format-battery = "{icon} is at {capacity}%";
+            tooltip-format-full = "  Battery Full!";
+            format-icons.default = ["" "" "" "" "" ];
+            format-icons.good = "";
+            format-icons.charging = "";
+            format-icons.plugged = "";
+            format-icons.critical = "⚠ ";
+            format-icons.full = " ";
+            format-icons.warning = " ";
           };
 
           network = {
             interface = "wlan0";
-            format-wifi = "{essid} ({signalStrength}%) ";
-            format-ethernet = "{ipaddr}/{cidr} ";
-            tooltip-format = "{ifname} via {gwaddr} ";
-            format-linked = "{ifname} (No IP) ";
-            format-disconnected = "Disconnected ⚠";
-            format-alt = "{ifname}: {ipaddr}/{cidr}";
+            format-wifi = " ";
+            format-ethernet = " ";
+            format-linked = "⚠ ";
+            format-disconnected = "⚠  ";
+            tooltip-format = "{ifname}";
+            tooltip-format-wifi = "  {ifname}: {ipaddr}/{cidr} via {essid} ({signalStrength}%)";
+            tooltip-format-disconnected = "⚠  {ifname}: Disconnected";
+            tooltip-format-ethernet = "  {ifname}: {ipaddr}/{cidr} via {gwaddr}";
+            tooltip-format-linked = "   {ifname} is P2P linked (No IP)";
           };
 
           pulseaudio = {
             scroll-step = 1;
-            format = "{volume}% {icon} {format_source}";
-            format-bluetooth = "{volume}% {icon} {format_source}";
-            format-bluetooth-muted = " {icon} {format_source}";
-            format-muted = " {format_source}";
+            format = "{icon} {format_source}";
+            format-bluetooth = "{icon} {format_source}";
             format-source = "{volume}% ";
             format-source-muted = "";
-            format-icons."headphone" = "";
-            format-icons."hands-free" = "";
-            format-icons."headset" = "";
-            format-icons."phone" = "";
-            format-icons."portable" = "";
-            format-icons."car" = "";
-            format-icons."default" = ["" "" ""];
+            format-icons.muted = " ";
+            format-icons.headphone = "";
+            format-icons.hands-free = "";
+            format-icons.headset = "";
+            format-icons.phone = "";
+            format-icons.portable = "";
+            format-icons.car = "";
+            format-icons.default = ["" "" ""];
             on-click = "pavucontrol";
           };
 
@@ -549,24 +569,7 @@ in {
           # alternate-scroll-mode=yes
 
           [colors]
-          foreground=cdd6f4 # Text
-          background=1e1e2e # Base
-          regular0=45475a   # Surface 1
-          regular1=f38ba8   # red
-          regular2=a6e3a1   # green
-          regular3=f9e2af   # yellow
-          regular4=89b4fa   # blue
-          regular5=f5c2e7   # pink
-          regular6=94e2d5   # teal
-          regular7=bac2de   # Subtext 1
-          bright0=585b70    # Surface 2
-          bright1=f38ba8    # red
-          bright2=a6e3a1    # green
-          bright3=f9e2af    # yellow
-          bright4=89b4fa    # blue
-          bright5=f5c2e7    # pink
-          bright6=94e2d5    # teal
-          bright7=a6adc8    # Subtext 0
+          ${with builtins; concatStringsSep "\n" (attrValues (mapAttrs (k: v: "${k}=${v}") cfg.colors))}
 
           [csd]
           # preferred=server
@@ -654,7 +657,7 @@ in {
       };
 
       "xdg/waybar/style.css" = {
-        text = ''
+        text = with cfg.colors; ''
           * {
             border-radius: 0;
             font-family: 'DaddyTimeMono Nerd Font';
@@ -663,85 +666,61 @@ in {
           }
 
           window#waybar {
-            background: #1E1E28;
-            color: #DADAE8;
+            background: #${background};
+            color: #${foreground};
           }
 
           tooltip {
-           background: #1E1E28;
+           background: #${background};
+           color: #${foreground};
            border-radius: 15px;
            border-width: 2px;
            border-style: solid;
-           border-color: #a4b9ef;
-          }
-
-          #workspaces {
-            background: #332E41;
-            margin-left: 5px;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            border-radius: 15px;
+           border-color: #${bright4};
           }
 
           #workspaces button {
             padding-left: 10px;
             padding-right: 10px;
             min-width: 0;
-            color: #DADAE8;
+            color: #${foreground};
+            background-color: #${background};
           }
 
-          #workspaces button.focused {
-            color: #A4B9EF;
-          }
+          #workspaces button.focused  { color: #${regular6}; background-color: #${background}; }
+          #workspaces button.urgent   { color: #${bright1}; background-color: #${background}; }
+          #workspaces button:hover    { color: #${bright6}; background-color: #${background}; }
 
-          #workspaces button.urgent {
-            color: #F9C096;
-          }
-
-          #workspaces button:hover {
-            background: #332e41;
-            border-color: #332e41;
-           color: #A4B9EF;
-          }
-
-          #idle_inhibitor, #clock, #battery, #pulseaudio, #workspaces, #mpd, #network {
+          #backlight,
+          #battery,
+          #clock,
+          #clock:hover,
+          #cpu,
+          #custom-vpn,
+          #idle_inhibitor,
+          #idle_inhibitor:hover,
+          #keyboard-state,
+          #memory,
+          #network,
+          #pulseaudio,
+          #temperature,
+          #workspaces {
             padding-left: 15px;
             padding-right: 15px;
-            background: #332E41;
-            color: #DADAE8;
+            background: #${background};
+            color: #${bright0};
+            border-color: #${bright0};
             border-radius: 10px 10px 10px 10px;
             margin-top: 5px;
             margin-bottom: 5px;
             margin-left: 5px;
-            margin-right: 5px;
-          }
-
-          #custom-vpn {
-            background: #332E41;
-            padding-right: 10px;
-            margin-top: 5px;
-            margin-bottom: 5px;
-          }
-
-          #clock {
-            padding-right: 15px;
-            margin-right: 5px;
-            border-radius: 0px 15px 15px 0px;
-          }
-
-          #custom-spotify {
-            background: #332E41;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            padding-right: 15px;
-            padding-left: 15px;
-            border-radius: 15px;
+            margin-right: 0px;
           }
         '';
       };
 
       "xdg/wofi/style.css" = {
-        text = ''
+        text = with cfg.colors; ''
           * {
             font-family: 'DaddyTimeMono Nerd Font', 'Fira Code Nerd Font';
             font-size: 20px;
@@ -750,26 +729,20 @@ in {
           window {
             margin: 0px;
             border: 1px solid #bd93f9;
-            background-color: #282a36;
+            background-color: #${background};
           }
 
-          #input {
+          #input, #inner-box {
             margin: 5px;
             border: none;
-            color: #f8f8f2;
-            background-color: #44475a;
-          }
-
-          #inner-box {
-            margin: 5px;
-            border: none;
-            background-color: #282a36;
+            color: #${foreground};
+            background-color: #${regular0};
           }
 
           #outer-box {
             margin: 5px;
             border: none;
-            background-color: #282a36;
+            background-color: #${background};
           }
 
           #scroll {
@@ -780,11 +753,12 @@ in {
           #text {
             margin: 5px 10px;
             border: none;
-            color: #f8f8f2;
+            color: #${foreground};
           }
 
           #entry:selected, #entry:selected * {
-            background-color: #444444;
+            background-color: #${bright0};
+            color: #${bright4};
           }
         '';
       };
