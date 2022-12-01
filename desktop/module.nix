@@ -205,6 +205,10 @@ in {
           bindsym Mod4+v split v
           bindsym Mod4+w exec $browser
           bindsym Pause mode display
+          bindsym XF86Favorites exec $launcher
+          bindsym XF86NotificationCenter exec $launcher
+          bindsym XF86PickupPhone exec $launcher
+          bindsym XF86HangupPhone exec $launcher
           bindsym XF86AudioLowerVolume exec $volume_down
           bindsym XF86AudioMute exec $volume_toggle
           bindsym XF86AudioRaiseVolume exec $volume_up
