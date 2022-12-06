@@ -607,9 +607,107 @@
                 };
                 variables = {
                   EDITOR = "nvim";
-                  BAT_STYLE = "header-filename,grid";
+                  BAT_STYLE = "grid";
                   BROWSER = lib.getExe pkgs.firefox-devedition-bin;
                   PAGER = lib.getExe pkgs.bat;
+                };
+              };
+
+              programs.git = {
+                enable = true;
+                lfs.enable = true;
+                config = {
+                  apply.whitespace = "fix";
+                  branch.sort = "-committerdate";
+                  color.branch.current = "yellow bold";
+                  color.branch.local = "green bold";
+                  color.branch.remote = "cyan bold";
+                  color.diff.frag = "magenta bold";
+                  color.diff.meta = "yellow bold";
+                  color.diff.new = "green bold";
+                  color.diff.old = "red bold";
+                  color.diff.whitespace = "red reverse";
+                  color.status.added = "green bold";
+                  color.status.changed = "yellow bold";
+                  color.status.untracked = "red bold";
+                  color.ui = "auto";
+                  core.ignorecase = true;
+                  core.pager = lib.getExe pkgs.delta;
+                  core.untrackedcache = true;
+                  credential."https://github.*".helper = "${lib.getExe pkgs.gh} auth git-credential";
+                  delta.decorations.minus-style = "red bold normal";
+                  delta.decorations.plus-style = "green bold normal";
+                  delta.decorations.minus-emph-style = "white bold red";
+                  delta.decorations.minus-non-emph-style = "red bold normal";
+                  delta.decorations.plus-emph-style = "white bold green";
+                  delta.decorations.plus-non-emph-style = "green bold normal";
+                  delta.decorations.file-style = "yellow bold none";
+                  delta.decorations.file-decoration-style = "yellow box";
+                  delta.decorations.hunk-header-style = "magenta bold";
+                  delta.decorations.hunk-header-decoration-style = "magenta box";
+                  delta.decorations.minus-empty-line-marker-style = "normal normal";
+                  delta.decorations.plus-empty-line-marker-style = "normal normal";
+                  delta.decorations.line-numbers-right-format = "{np:^4}│ ";
+                  delta.features = "line-numbers decorations";
+                  delta.line-numbers = true;
+                  diff.bin.textconv = "hexdump -v -C";
+                  diff.renames = "copies";
+                  diff.tool = "vimdiff";
+                  help.autocorrect = 1;
+                  init.defaultbranch = "main";
+                  interactive.difffilter = "${lib.getExe pkgs.delta} --color-only";
+                  pull.ff = true;
+                  pull.rebase = true;
+                  push.default = "simple";
+                  push.followtags = true;
+                  rerere.autoupdate = true;
+                  rerere.enabled = true;
+                  core.excludesfile = builtins.toFile "git-excludes" (builtins.concatStringsSep "\n" [
+                    # Compiled
+                    "tags"
+                    "*.com"
+                    "*.class"
+                    "*.dll"
+                    "*.exe"
+                    "*.o"
+                    "*.so"
+                    # Editor's Temporary Files
+                    "*~"
+                    "*.swp"
+                    "*.swo"
+                    ".vscode"
+                    # Log files
+                    "*.log"
+                    ".nvimlog"
+                    # macOS-specific
+                    ".DS_Store*"
+                    "Icon?"
+                    "Thumbs.db"
+                    "ehthumbs.db"
+                    "*.dmg"
+                    # Archives
+                    "*.7z"
+                    "*.gz"
+                    "*.iso"
+                    "*.jar"
+                    "*.rar"
+                    "*.tar"
+                    "*.zip"
+                  ]);
+                  alias = {
+                    aliases = "config --show-scope --get-regexp alias";
+                    amend = "commit --amend";
+                    amendall = "commit --amend --all";
+                    amendit = "commit --amend --no-edit";
+                    branches = "branch --all";
+                    l = "log --pretty=oneline --graph --abbrev-commit";
+                    list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
+                    quick-rebase = "rebase --interactive --root --autosquash --autostash";
+                    remotes = "remote --verbose";
+                    unstage = "restore --staged";
+                    user = "config --show-scope --get-regexp user";
+                    wtf-config = "config --show-scope --show-origin --list --includes";
+                  };
                 };
               };
 
@@ -695,7 +793,6 @@
               nixpkgs.config.allowUnfree = true;
               nixpkgs.overlays = lib.mkForce (builtins.attrValues self.overlays);
 
-
               programs = {
                 kbdlight.enable = true;
                 iftop.enable = true;
@@ -710,42 +807,7 @@
                 htop.settings.cpu_count_from_zero = true;
                 htop.settings.detailed_cpu_time = true;
                 htop.settings.color_scheme = "6";
-                git.enable = true;
-                git.lfs.enable = true;
                 starship.enable = true;
-
-                git.config = {
-                  alias.aliases = "config --show-scope --get-regexp alias";
-                  alias.unstage = "restore --staged";
-                  alias.amend = "commit --amend";
-                  alias.amendall = "commit --amend --all";
-                  alias.amendit = "commit --amend --no-edit";
-                  alias.branches = "branch --all";
-                  alias.l = "log --pretty=oneline --graph --abbrev-commit";
-                  alias.quick-rebase = "rebase --interactive --root --autosquash --autostash";
-                  alias.remotes = "remote --verbose";
-                  alias.list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
-                  alias.user = "config --show-scope --get-regexp user";
-                  alias.wtf-config = "config --show-scope --show-origin --list --includes";
-                  apply.whitespace = "fix";
-                  branch.sort = "-committerdate";
-                  core.excludesfile = pkgs.writeText "git-excludes" (lib.concatStringsSep "\n" ["*~" "tags" ".nvimlog" "*.swp" "*.swo" "*.log" ".DS_Store"]);
-                  core.ignorecase = true;
-                  core.pager = lib.getExe pkgs.delta;
-                  core.untrackedcache = true;
-                  credential."https://github.com".helper = "${lib.getExe pkgs.gh} auth git-credential";
-                  credential."https://github.*".helper = "${lib.getExe pkgs.gh} auth git-credential";
-                  credential."https://github.internal.digitalocean.com".helper = "${lib.getExe pkgs.gh} auth git-credential";
-                  diff.bin.textconv = "hexdump -v -C";
-                  diff.renames = "copies";
-                  help.autocorrect = 1;
-                  init.defaultbranch = "main";
-                  interactive.difffilter = "${lib.getExe pkgs.delta} --color-only";
-                  pull.ff = true;
-                  pull.rebase = true;
-                  push.default = "simple";
-                  push.followtags = true;
-                };
 
                 starship.settings = {
                   add_newline = false;
