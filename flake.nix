@@ -1174,6 +1174,7 @@
         networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
         environment.systemPackages = with pkgs; [
           (cthulhu {})
+          do-nixpkgs.fly
           dao
           openconnect
           (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")

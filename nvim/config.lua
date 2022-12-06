@@ -7,7 +7,7 @@ if vim.fn.has("nvim-0.8") ~= 1 or vim.version().prerelease then
 end
 
 vim.env.XDG_CACHE_HOME = vim.fn.expand("$HOME/.cache")
-vim.cmd.colorscheme("nordfox")
+vim.cmd.colorscheme("catppuccin-macchiato")
 vim.g.which_key_use_floating_win = 1
 vim.g.autoformat_enabled = true -- enable or disable auto formatting at start (lsp.formatting.format_on_save must be enabled)
 vim.g.autopairs_enabled = true -- enable autopairs at start

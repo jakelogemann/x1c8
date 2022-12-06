@@ -40,6 +40,7 @@ in {
         slurp
         swaybg
         swaycwd
+        wezterm
         swayidle
         swaylock
         waybar
@@ -93,7 +94,7 @@ in {
             $reload "swaymsg reload"
             $file_manager "foot ranger"
             $screenshot  "grim -g \"$(slurp)\" - | wl-copy"
-            $term "footclient"
+            $term "wezterm"
             $lock_screen "swaylock -c111111 -eFKl --font='DaddyTimeMono Nerd Font' --font-size=16  --indicator-idle-visible"
             $volume_down "amixer set Master 4%-"
             $volume_up "amixer set Master 4%+"

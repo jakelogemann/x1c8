@@ -71,6 +71,7 @@ in
         alpha-nvim
         better-escape-nvim
         bufferline-nvim
+        catppuccin-nvim
         cmp-buffer
         cmp-calc
         cmp-copilot
