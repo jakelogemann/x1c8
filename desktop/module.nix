@@ -75,7 +75,7 @@ in {
           focus_follows_mouse no
           focus_on_window_activation smart
           focus_wrapping no
-          font pango:DaddyTimeMono Nerd Font Bold 14.000000
+          font pango:${cfg.fonts.default} 14.000000
           gaps inner 16
           gaps outer 6
           hide_edge_borders smart
@@ -92,7 +92,7 @@ in {
             $file_manager "foot ranger"
             $screenshot  "grim -g \"$(slurp)\" - | wl-copy"
             $term "wezterm"
-            $lock_screen "swaylock -c111111 -eFKl --font='DaddyTimeMono Nerd Font' --font-size=16  --indicator-idle-visible"
+            $lock_screen "swaylock -c111111 -eFKl --font='${cfg.fonts.default}' --font-size=16  --indicator-idle-visible"
             $volume_down "amixer set Master 4%-"
             $volume_up "amixer set Master 4%+"
             $volume_toggle "amixer set Master toggle"
@@ -285,7 +285,7 @@ in {
 
       "xdg/mako/config".text = with cfg.colors; ''
         sort=-time
-        font=DaddyTimeMono Nerd Font 12
+        font=${cfg.fonts.default} 12
         default-timeout=5000
         max-history=10
         on-button-left=dismiss
@@ -521,7 +521,7 @@ in {
 
         box-drawings-uses-font-glyphs=yes
         dpi-aware=auto
-        font=DaddyTimeMono Nerd Font:size=8
+        font=${cfg.fonts.default}:size=8
         letter-spacing=0.85
         word-delimiters=,│`|:"'()[]{}<>
         bold-text-in-bright=no
@@ -672,7 +672,7 @@ in {
         text = with cfg.colors; ''
           * {
             border-radius: 0;
-            font-family: 'DaddyTimeMono Nerd Font';
+            font-family: '${cfg.fonts.default}';
             font-size: 14pt;
             min-height: 0;
           }
@@ -734,7 +734,7 @@ in {
       "xdg/wofi/style.css" = {
         text = with cfg.colors; ''
           * {
-            font-family: 'DaddyTimeMono Nerd Font', 'Fira Code Nerd Font';
+            font-family: '${cfg.fonts.default}', 'Fira Code Nerd Font';
             font-size: 20px;
           }
 

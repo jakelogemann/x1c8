@@ -1,3 +1,6 @@
+[fonts]
+default = "DaddyTimeMono Nerd Font"
+
 [icons]
 shell = ""
 chrome = ""
