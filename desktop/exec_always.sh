@@ -19,7 +19,7 @@ update_systemd_env "${VAR_NAMES[@]}"
 ensure_running "waybar"
 
 # Make is a notification daemon (similar to dunst)
-ensure_running "mako"
+ensure_running "mako --config=/etc/xdg/mako/config"
 
 # D-Bus session
 ensure_running "dbus-daemon --session .*" "dbus-daemon --session --address=unix:path=$XDG_RUNTIME_DIR/bus"

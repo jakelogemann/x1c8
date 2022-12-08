@@ -298,6 +298,21 @@ in {
         '';
       };
 
+      "xdg/mako/config" = {
+        text = with cfg.colors; ''
+          sort=-time
+          font=DaddyTimeMono Nerd Font 12
+          default-timeout=3000
+          max-history=10
+          on-button-left=dismiss
+          on-button-middle=exec makoctl menu -n "$id" dmenu -p 'Select action: '
+          text-color=#${foreground}AA
+          background-color=#${background}AA
+          [mode=do-not-disturb]
+          invisible=1
+        '';
+      };
+
       "xdg/waybar/config" = {
         text = builtins.toJSON {
           layer = "top";

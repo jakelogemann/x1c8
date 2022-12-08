@@ -879,4 +879,6 @@ if has("user_commands")
 endif
 
 nnoremap <silent> <C-e> <CMD>NvimTreeToggle<CR>
+nnoremap <silent> <C-s> <CMD>write<CR>
+
 ]])

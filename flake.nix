@@ -635,6 +635,7 @@
                   core.pager = lib.getExe pkgs.delta;
                   core.untrackedcache = true;
                   credential."https://github.*".helper = "${lib.getExe pkgs.gh} auth git-credential";
+                  credential."https://github.internal.digitalocean.com".helper = "${lib.getExe pkgs.gh} auth git-credential";
                   delta.decorations.minus-style = "red bold normal";
                   delta.decorations.plus-style = "green bold normal";
                   delta.decorations.minus-emph-style = "white bold red";
@@ -918,13 +919,6 @@
                   libinput.touchpad.disableWhileTyping = true;
                   videoDrivers = ["modesetting"];
                   xkbOptions = "altwin:swap_lalt_lwin,ctrl:nocaps,terminate:ctrl_alt_bksp";
-                };
-                nomad = {
-                  enable = false;
-                  enableDocker = false;
-                  settings.server.enabled = true;
-                  settings.client.enabled = true;
-                  settings.server.bootstrap_expect = 1;
                 };
               };
 
