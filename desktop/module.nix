@@ -208,8 +208,8 @@ in {
           bindsym Pause mode display
           bindsym XF86Favorites exec $launcher
           bindsym XF86NotificationCenter exec $launcher
-          bindsym XF86PickupPhone exec $launcher
-          bindsym XF86HangupPhone exec $launcher
+          bindsym XF86PickupPhone exec makoctl mode -r do-not-disturb
+          bindsym XF86HangupPhone exec makoctl mode -a do-not-disturb
           bindsym XF86AudioLowerVolume exec $volume_down
           bindsym XF86AudioMute exec $volume_toggle
           bindsym XF86AudioRaiseVolume exec $volume_up
@@ -302,12 +302,27 @@ in {
         text = with cfg.colors; ''
           sort=-time
           font=DaddyTimeMono Nerd Font 12
-          default-timeout=3000
+          default-timeout=5000
           max-history=10
           on-button-left=dismiss
           on-button-middle=exec makoctl menu -n "$id" dmenu -p 'Select action: '
-          text-color=#${foreground}AA
-          background-color=#${background}AA
+          border-radius=5
+          max-icon-size=48
+          icons=1
+          anchor=top-center
+          layer=overlay
+          max-visible=5
+          border-color=#${bright2}
+          group-by=app-name
+          text-color=#${foreground}CC
+          margin=10,20,10
+          width=600
+          format=<b>%a</b> %s\n%b
+          height=100
+          background-color=#${background}DD
+          [app-name="Firefox"]
+          format=<b>%s</b>:\n%b
+          border-color=#${bright1}
           [mode=do-not-disturb]
           invisible=1
         '';
