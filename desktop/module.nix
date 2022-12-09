@@ -478,12 +478,87 @@ in {
           return-type = "json";
           max-length = 40;
           format-icons.spotify = "";
-          format-icons.default = "🎜";
           escape  = true;
           "exec"  = "$HOME/.config/waybar/mediaplayer.py 2> /dev/null"; # Script in resources folder
           "exec"  = "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" # Filter player based on name
         };
         */
+      };
+
+      "xdg/waybar/style.css" = {
+        text = with cfg.colors; ''
+          * {
+            border-radius: 0;
+            font-family: '${cfg.fonts.default}';
+            font-size: 14pt;
+            min-height: 0;
+          }
+
+          window#waybar {
+            background: #${background};
+            color: #${foreground};
+          }
+
+          tooltip {
+           background: #${background};
+           color: #${foreground};
+           border-radius: 15px;
+           border-width: 2px;
+           border-style: solid;
+           border-color: #${bright4};
+          }
+
+          #workspaces button {
+            padding-left: 10px;
+            padding-right: 10px;
+            min-width: 0;
+            color: #${foreground};
+            background-color: #${background};
+          }
+
+          /* good */
+          #battery.full,
+          #network.wifi,
+          #network.ethernet,
+          #workspaces button.focused { color: #${regular6}; }
+          /* okay */
+          #battery.good,
+          #workspaces button:hover { color: #${regular7}; }
+          /* bad */
+          #battery.warning            { color: #${regular3}; }
+          /* urgent */
+          #battery.critical,
+          #workspaces button.urgent { color: #${bright1}; }
+          /* special */
+          #battery.charging { color: #${bright4}; }
+
+
+          #backlight,
+          #battery,
+          #clock,
+          #clock:hover,
+          #cpu,
+          #custom-vpn,
+          #idle_inhibitor,
+          #idle_inhibitor:hover,
+          #keyboard-state,
+          #memory,
+          #network,
+          #pulseaudio,
+          #temperature,
+          #workspaces {
+            padding-left: 15px;
+            padding-right: 15px;
+            background: #${background};
+            color: #${bright0};
+            border-color: #${bright0};
+            border-radius: 10px 10px 10px 10px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            margin-left: 5px;
+            margin-right: 0px;
+          }
+        '';
       };
 
       "xdg/wofi/config".text = builtins.concatStringsSep "\n" [
@@ -514,6 +589,33 @@ in {
         "term=foot"
         "width=720"
       ];
+
+      "xdg/wofi/style.css".text = with cfg.colors; ''
+          * { font-family: '${cfg.fonts.default}', 'Fira Code Nerd Font'; font-size: 20px; }
+          #entry:selected, #entry:selected * { background-color: #${bright0}; color: #${bright4}; }
+          #scroll { margin: 0px; border: none; }
+          window {
+            margin: 0px;
+            border: 1px solid #bd93f9;
+            background-color: #${background};
+          }
+          #input, #inner-box {
+            margin: 5px;
+            border: none;
+            color: #${foreground};
+            background-color: #${regular0};
+          }
+          #outer-box {
+            margin: 5px;
+            border: none;
+            background-color: #${background};
+          }
+          #text {
+            margin: 5px 10px;
+            border: none;
+            color: #${foreground};
+          }
+        '';
 
       "xdg/foot/foot.ini".text = ''
         # -*- conf -*-
@@ -668,112 +770,6 @@ in {
         select-row=BTN_LEFT-3
       '';
 
-      "xdg/waybar/style.css" = {
-        text = with cfg.colors; ''
-          * {
-            border-radius: 0;
-            font-family: '${cfg.fonts.default}';
-            font-size: 14pt;
-            min-height: 0;
-          }
-
-          window#waybar {
-            background: #${background};
-            color: #${foreground};
-          }
-
-          tooltip {
-           background: #${background};
-           color: #${foreground};
-           border-radius: 15px;
-           border-width: 2px;
-           border-style: solid;
-           border-color: #${bright4};
-          }
-
-          #workspaces button {
-            padding-left: 10px;
-            padding-right: 10px;
-            min-width: 0;
-            color: #${foreground};
-            background-color: #${background};
-          }
-
-          #workspaces button.focused  { color: #${regular6}; background-color: #${background}; }
-          #workspaces button.urgent   { color: #${bright1}; background-color: #${background}; }
-          #workspaces button:hover    { color: #${bright6}; background-color: #${background}; }
-
-          #backlight,
-          #battery,
-          #clock,
-          #clock:hover,
-          #cpu,
-          #custom-vpn,
-          #idle_inhibitor,
-          #idle_inhibitor:hover,
-          #keyboard-state,
-          #memory,
-          #network,
-          #pulseaudio,
-          #temperature,
-          #workspaces {
-            padding-left: 15px;
-            padding-right: 15px;
-            background: #${background};
-            color: #${bright0};
-            border-color: #${bright0};
-            border-radius: 10px 10px 10px 10px;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            margin-left: 5px;
-            margin-right: 0px;
-          }
-        '';
-      };
-
-      "xdg/wofi/style.css" = {
-        text = with cfg.colors; ''
-          * {
-            font-family: '${cfg.fonts.default}', 'Fira Code Nerd Font';
-            font-size: 20px;
-          }
-
-          window {
-            margin: 0px;
-            border: 1px solid #bd93f9;
-            background-color: #${background};
-          }
-
-          #input, #inner-box {
-            margin: 5px;
-            border: none;
-            color: #${foreground};
-            background-color: #${regular0};
-          }
-
-          #outer-box {
-            margin: 5px;
-            border: none;
-            background-color: #${background};
-          }
-
-          #scroll {
-            margin: 0px;
-            border: none;
-          }
-
-          #text {
-            margin: 5px 10px;
-            border: none;
-            color: #${foreground};
-          }
-
-          #entry:selected, #entry:selected * {
-            background-color: #${bright0};
-            color: #${bright4};
-          }
-        '';
-      };
     };
   };
 }
