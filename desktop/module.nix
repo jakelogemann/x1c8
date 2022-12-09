@@ -179,6 +179,7 @@ in {
         bindsym Mod4+Tab workspace next_on_output
         bindsym Mod4+Up focus up
         bindsym Mod4+b bar mode toggle
+        bindsym Mod4+Escape mode desktop
         bindsym Mod4+d mode desktop
         bindsym Mod4+e exec $term nvim
         bindsym Mod4+f exec $file_manager
@@ -212,10 +213,14 @@ in {
 
       "sway/config.d/modes".text = ''
         mode "desktop" {
+          bindsym r mode default; exec swaymsg reload
+          bindsym b mode default; exec "pkill .waybar-wrapped && swaymsg reload"
+          bindsym n mode default; exec "pkill .mako-wrapped && swaymsg reload"
+
+          # cancel keybinds:
+          bindsym Mod4+Escape mode default
           bindsym Escape mode default
           bindsym Return mode default
-          bindsym Shift+q exec $exit
-          bindsym r exec $reload
         }
         mode "display" {
           bindsym 0 exec swaymsg output eDP-1 toggle; mode default
@@ -262,25 +267,10 @@ in {
       '';
 
       "sway/config.d/outputs".text = ''
-        output * bg  #${cfg.colors.bright0} solid_color
-
-        output eDP-1 {
-          pos 0 0
-          max_render_time 5
-          mode 1920x1080@59.999Hz
-        }
-
-        output DP-1 {
-          pos 0 0
-          max_render_time 5
-          mode 3840x2160@59.997Hz
-        }
-
-        output DP-2 {
-          pos 2160 0
-          max_render_time 5
-          mode 3840x2160@59.997Hz
-        }
+        output * bg  #${cfg.colors.regular0} solid_color
+        output eDP-1 pos 0 0 mode 1920x1080@59.999Hz max_render_time 1
+        output DP-1 pos 0 0 mode 3840x2160@59.997Hz max_render_time 1
+        output DP-2 pos 2160 0 mode 3840x2160@59.997Hz max_render_time 1
       '';
 
       "xdg/mako/config".text = with cfg.colors; ''
@@ -328,6 +318,7 @@ in {
         modules-right = [
           "clock"
           "network"
+          "custom/vpn"
           "battery"
           "cpu"
           "memory"
@@ -336,10 +327,10 @@ in {
           "backlight"
           "pulseaudio"
           "temperature"
-          "keyboard-state"
           "tray"
         ];
 
+        "sway/mode".format = "<span style=\"italic\">{}</span>";
         "sway/workspaces" = {
           disable-scroll = false;
           all-outputs = true;
@@ -353,17 +344,6 @@ in {
           format-icons.focused = "";
           format-icons.default = "";
         };
-
-        keyboard-state = {
-          numlock = true;
-          capslock = true;
-          format = "{name} {icon}";
-          format-icons.locked = "";
-          format-icons.unlocked = "";
-        };
-
-        "sway/mode".format = "<span style=\"italic\">{}</span>";
-
         "sway/scratchpad" = {
           format = "{icon} {count}";
           show-empty = false;
@@ -472,17 +452,18 @@ in {
           on-click = "pavucontrol";
         };
 
-        /*
-        "custom/media"= {
-          format = "{icon} {}";
-          return-type = "json";
-          max-length = 40;
-          format-icons.spotify = "";
-          escape  = true;
-          "exec"  = "$HOME/.config/waybar/mediaplayer.py 2> /dev/null"; # Script in resources folder
-          "exec"  = "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" # Filter player based on name
+        "custom/vpn"= {
+          format = "{icon}";
+          interval = 10;
+          format-icons.up = "旅";
+          format-icons.down = "";
+          exec  = pkgs.writeShellScript "vpn-is-up" ''
+            if [[ $(pgrep -c openconnect) -ne "0" ]]
+            then echo -e "VPN\nVPN is online\nup\n"
+            else echo -e "VPN\nVPN is offline\ndown\n"
+            fi
+          '';
         };
-        */
       };
 
       "xdg/waybar/style.css" = {
@@ -508,33 +489,36 @@ in {
            border-color: #${bright4};
           }
 
-          #workspaces button {
-            padding-left: 10px;
-            padding-right: 10px;
+          #workspaces, #workspaces button {
+            margin-left: 5px;
             min-width: 0;
             color: #${foreground};
-            background-color: #${background};
+            background: transparent;
           }
 
           /* good */
-          #battery.full,
+          #battery.good,
           #network.wifi,
           #network.ethernet,
           #workspaces button.focused { color: #${regular6}; }
           /* okay */
-          #battery.good,
-          #workspaces button:hover { color: #${regular7}; }
+          #network.linked,
+          #workspaces button:hover { color: #${regular7}; background-color: #${bright0}; }
           /* bad */
-          #battery.warning            { color: #${regular3}; }
+          #network.disconnected,
+          #battery.warning { color: #${regular3}; }
           /* urgent */
           #battery.critical,
           #workspaces button.urgent { color: #${bright1}; }
           /* special */
+          #idle_inhibitor.active,
           #battery.charging { color: #${bright4}; }
-
-
+          /* muted */
+          #clock:hover { color: #${foreground}; }
+          /* default */
           #backlight,
           #battery,
+          #battery.full,
           #clock,
           #clock:hover,
           #cpu,
@@ -545,6 +529,8 @@ in {
           #memory,
           #network,
           #pulseaudio,
+          #pulseaudio,
+          #temperature,
           #temperature,
           #workspaces {
             padding-left: 15px;
