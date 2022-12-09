@@ -404,6 +404,13 @@
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
           inherit (self.inputs.do-nixpkgs.packages.${prev.system}) fly sammyca;
 
+          staff-cert = self.inputs.do-nixpkgs.packages.${prev.system}.staff-cert.overrideAttrs (old: {
+            src =  builtins.fetchurl {
+              url = "https://security.nyc3.digitaloceanspaces.com/artifacts/staff-cert/release/staff_cert_linux_nocgo";
+              sha256 = "sha256:0pi383lsbjj0fgad2w1b77k1akkn0n7y0pnqymnmzmyjv5lw7x7g";
+            };
+          });
+
           dao = buildGoModule rec {
             name = "dao";
             ldflags = [
@@ -701,13 +708,14 @@
                     amendall = "commit --amend --all";
                     amendit = "commit --amend --no-edit";
                     branches = "branch --all";
+                    head-refs = "for-each-ref --format='%(refname:short)' refs/heads/ :";
                     l = "log --pretty=oneline --graph --abbrev-commit";
                     list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
                     quick-rebase = "rebase --interactive --root --autosquash --autostash";
                     remotes = "remote --verbose";
                     unstage = "restore --staged";
                     user = "config --show-scope --get-regexp user";
-                    wtf-config = "config --show-scope --show-origin --list --includes";
+                    show-config = "config --show-scope --show-origin --list --includes";
                   };
                 };
               };
@@ -854,13 +862,14 @@
                   enable = true;
                   # enableBashCompletion = true;
                   enableCompletion = true;
-                  # enableGlobalCompInit = true;
+                  enableGlobalCompInit = true;
                   histFile = "$HOME/.zsh_history";
                   histSize = 100000;
                   syntaxHighlighting.enable = true;
                   syntaxHighlighting.highlighters = ["main" "brackets" "pattern" "root" "line"];
                   syntaxHighlighting.styles.alias = "fg=magenta,bold";
                   interactiveShellInit = ''
+                    eval "$(${lib.getExe pkgs.dao} completion zsh)"
                     eval "$(${lib.getExe pkgs.direnv} hook zsh)"
                     eval "$(${lib.getExe pkgs.navi} widget zsh)"
                     eval "$(${lib.getExe pkgs.zoxide} init zsh)"
@@ -1231,6 +1240,7 @@
         environment.systemPackages = with pkgs; [
           (cthulhu {})
           do-nixpkgs.fly
+          staff-cert
           dao
           openconnect
           (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")

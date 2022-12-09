@@ -90,7 +90,7 @@ in {
             $launcher "wofi -c /etc/xdg/wofi/config"
             $reload "swaymsg reload"
             $file_manager "foot ranger"
-            $screenshot  "grim -g \"$(slurp)\" - | wl-copy"
+            $screenshot  "grimshot copy area"
             $term "wezterm"
             $lock_screen "swaylock -c111111 -eFKl --font='${cfg.fonts.default}' --font-size=16  --indicator-idle-visible"
             $volume_down "amixer set Master 4%-"

@@ -60,90 +60,90 @@ maybe-add-path "/usr/sbin"
 
 #=======================================================================
 
-zmodload "zsh/attr" "zsh/cap" "zsh/clone" "zsh/complete" "zsh/complist" "zsh/computil" \
-  "zsh/curses" "zsh/langinfo" "zsh/mathfunc" "zsh/parameter" "zsh/regex" "zsh/sched" "zsh/system" \
-  "zsh/termcap" "zsh/terminfo" "zsh/zle" "zsh/zleparameter" "zsh/zpty" "zsh/zselect" "zsh/zutil"
+# zmodload "zsh/attr" "zsh/cap" "zsh/clone" "zsh/complete" "zsh/complist" "zsh/computil" \
+#   "zsh/curses" "zsh/langinfo" "zsh/mathfunc" "zsh/parameter" "zsh/regex" "zsh/sched" "zsh/system" \
+#   "zsh/termcap" "zsh/terminfo" "zsh/zle" "zsh/zleparameter" "zsh/zpty" "zsh/zselect" "zsh/zutil"
 
 # autoload -Uz promptinit colors compinit bashcompinit;
 # promptinit && colors && compinit && bashcompinit
 
 #=======================================================================
+#
+# zstyle ':completion:*'                cache-path        "$zsh_dir/completion.cache"
+# zstyle ':vcs_info:*'                  enable            git cvs svn hg
+# zstyle ':completion:*'                completer         _complete _match _approximate _expand_alias
+# zstyle ':completion:*'                file-list         list=20 insert=10
+# zstyle ':completion:*'                squeeze-slashes   true
+# zstyle ':completion:*'                use-cache         on
+# zstyle ':completion:*:*:kill:*'       menu              yes select
+# zstyle ':completion:*:(all-|)files'   ignored-patterns  '(|*/)CVS'
+# zstyle ':completion:*:default'        list-dirs-first   true
+# zstyle ':completion:*:approximate:*'  max-errors        1 numeric
+# zstyle ':completion:*:cd:*'           ignore-parents    parent pwd
+# zstyle ':completion:*:cd:*'           ignored-patterns  '(*/)#CVS'
+# zstyle ':completion:*:functions'      ignored-patterns  '_*'
+# zstyle ':completion:*:kill:*'         force-list        always
+# zstyle ':completion:*:match:*'        original          only
+# zstyle ':completion:*:rm:*'           file-patterns     '*.log:log-files' '%p:all-files'
+#
+#=======================================================================
 
-zstyle ':completion:*'                cache-path        "$zsh_dir/completion.cache"
-zstyle ':vcs_info:*'                  enable            git cvs svn hg
-zstyle ':completion:*'                completer         _complete _match _approximate _expand_alias
-zstyle ':completion:*'                file-list         list=20 insert=10
-zstyle ':completion:*'                squeeze-slashes   true
-zstyle ':completion:*'                use-cache         on
-zstyle ':completion:*:*:kill:*'       menu              yes select
-zstyle ':completion:*:(all-|)files'   ignored-patterns  '(|*/)CVS'
-zstyle ':completion:*:default'        list-dirs-first   true
-zstyle ':completion:*:approximate:*'  max-errors        1 numeric
-zstyle ':completion:*:cd:*'           ignore-parents    parent pwd
-zstyle ':completion:*:cd:*'           ignored-patterns  '(*/)#CVS'
-zstyle ':completion:*:functions'      ignored-patterns  '_*'
-zstyle ':completion:*:kill:*'         force-list        always
-zstyle ':completion:*:match:*'        original          only
-zstyle ':completion:*:rm:*'           file-patterns     '*.log:log-files' '%p:all-files'
+# typeset -a baliases; baliases=(); # blank aliases
+# typeset -a ialiases; ialiases=(); # ignored aliases
+# function balias() { alias $@; args="$@"; args=${args%%\=*}; baliases+=(${args##* }); }
+# function ialias() { alias $@; args="$@"; args=${args%%\=*}; ialiases+=(${args##* }); }
+# function zle-run-navi() {  BUFFER=" navi"; zle accept-line; }
+# function zle-skim-dir() {  BUFFER=" sk --ansi -i -c 'grep -rI --color=always --line-number \"{}\" .'"; zle accept-line; }
+# function zle-skim-dirs() {  BUFFER=' vim -p $(find . -type f | sk -m)'; zle accept-line; }
+# function expand-alias-space() {
+#   [[ $LBUFFER =~ "\<(${(j:|:)ialiases})\$" ]]; ignored=$?
+#   [[ $LBUFFER =~ "\<(${(j:|:)baliases})\$" ]]; insertBlank=$?
+#   if [[ "$ignored" = "0" ]]; then return; fi
+#   # zle _expand_alias
+#   zle self-insert
+#   if [[ "$insertBlank" = "0" ]]; then zle backward-delete-char; fi
+# }
 
 #=======================================================================
 
-typeset -a baliases; baliases=(); # blank aliases
-typeset -a ialiases; ialiases=(); # ignored aliases
-function balias() { alias $@; args="$@"; args=${args%%\=*}; baliases+=(${args##* }); }
-function ialias() { alias $@; args="$@"; args=${args%%\=*}; ialiases+=(${args##* }); }
-function zle-run-navi() {  BUFFER=" navi"; zle accept-line; }
-function zle-skim-dir() {  BUFFER=" sk --ansi -i -c 'grep -rI --color=always --line-number \"{}\" .'"; zle accept-line; }
-function zle-skim-dirs() {  BUFFER=' vim -p $(find . -type f | sk -m)'; zle accept-line; }
-function expand-alias-space() {
-  [[ $LBUFFER =~ "\<(${(j:|:)ialiases})\$" ]]; ignored=$?
-  [[ $LBUFFER =~ "\<(${(j:|:)baliases})\$" ]]; insertBlank=$?
-  if [[ "$ignored" = "0" ]]; then return; fi
-  # zle _expand_alias
-  zle self-insert
-  if [[ "$insertBlank" = "0" ]]; then zle backward-delete-char; fi
-}
+# setopt cbases cprecedences
+# setopt autocd autopushd pushdsilent pushdignoredups pushdtohome
+# setopt cdablevars interactivecomments printexitvalue shortloops
+# setopt localloops localoptions localpatterns
+# setopt pipefail vi evallineno
+#
+# # Autocompletion
+# setopt hashdirs hashcmds
+# setopt aliases
+# setopt automenu
+# setopt autoparamslash
+# setopt autoremoveslash
+# setopt completealiases
+# setopt promptbang promptcr promptsp promptpercent promptsubst transientrprompt
+# setopt listambiguous
+# setopt listpacked
+# setopt listrowsfirst
+# setopt autolist
+# setopt markdirs
+# setopt banghist
+# setopt histbeep
+# setopt inc_append_history
+# setopt histexpiredupsfirst
+# setopt histignorealldups
+# setopt histnostore
+# setopt histfcntllock
+# setopt histfindnodups
+# setopt histreduceblanks
+# setopt histsavebycopy
+# setopt histverify
+# setopt sharehistory
 
-#=======================================================================
+# # Shell History
+# HISTFILE="$HOME/.zhistory"
+# SAVEHIST=50000  # Total lines to save in zsh history.
+# HISTSIZE=1000   # Lines of history to save to save from the current session.
 
-setopt cbases cprecedences
-setopt autocd autopushd pushdsilent pushdignoredups pushdtohome
-setopt cdablevars interactivecomments printexitvalue shortloops
-setopt localloops localoptions localpatterns
-setopt pipefail vi evallineno
-
-# Autocompletion
-setopt hashdirs hashcmds
-setopt aliases
-setopt automenu
-setopt autoparamslash
-setopt autoremoveslash
-setopt completealiases
-setopt promptbang promptcr promptsp promptpercent promptsubst transientrprompt
-setopt listambiguous
-setopt listpacked
-setopt listrowsfirst
-setopt autolist
-setopt markdirs
-setopt banghist
-setopt histbeep
-setopt inc_append_history
-setopt histexpiredupsfirst
-setopt histignorealldups
-setopt histnostore
-setopt histfcntllock
-setopt histfindnodups
-setopt histreduceblanks
-setopt histsavebycopy
-setopt histverify
-setopt sharehistory
-
-# Shell History
-HISTFILE="$HOME/.zhistory"
-SAVEHIST=50000  # Total lines to save in zsh history.
-HISTSIZE=1000   # Lines of history to save to save from the current session.
-
-unsetopt correct correctall flowcontrol
+unsetopt correct correctall
 
 # Job Control
 unsetopt flowcontrol   #Disable ^S & ^Q.
@@ -151,6 +151,7 @@ setopt autocontinue autoresume bgnice checkjobs notify longlistjobs
 setopt checkrunningjobs
 
 #=======================================================================
+zmodload "zsh/zle" "zsh/zleparameter" "zsh/zselect"
 # Make sure that the terminal is in application mode when zle is active, since
 # only then values from $terminfo are valid
 if (( ${+terminfo[smkx]} )) && (( ${+terminfo[rmkx]} )); then
