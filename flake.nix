@@ -983,8 +983,8 @@
                   serviceConfig.ProtectKernelModules = true;
                   serviceConfig.ProtectKernelTunables = true;
                 };
-                services.NetworkManager-wait-online.enable = false;
-                services.systemd-networkd-wait-online.enable = false;
+                services.NetworkManager-wait-online.enable = lib.mkForce false;
+                services.systemd-networkd-wait-online.enable = lib.mkForce false;
               };
 
               environment.etc = {
