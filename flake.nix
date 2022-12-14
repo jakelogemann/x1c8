@@ -226,6 +226,13 @@
         neovim = callPackage ./nvim {};
         nixpkgs-lint = self.inputs.nixpkgs-lint.packages.${prev.system}.default;
         helix = self.inputs.helix.packages.${prev.system}.helix;
+
+        ldapsearch = prev.writeShellApplication  {
+          name = "ldapsearch";
+          runtimeInputs = with prev; [ openldap ];
+          text = "ldapsearch -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
+        };
+
         system-cli = prev.writeShellApplication {
           name = "system";
           runtimeInputs = with prev; [
@@ -592,7 +599,6 @@
                 profileRelativeEnvVars.MANPATH = ["/man" "/share/man"];
                 profileRelativeEnvVars.PATH = ["/bin"];
                 shellAliases = {
-                  ldapsearch = "nix run ${prefs.repo.path}#ldapsearch -- -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
                   git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
                   l = "ls -alh";
                   la = "${lib.getExe pkgs.lsd} -a";
@@ -792,8 +798,8 @@
                 settings.auto-optimise-store = true;
                 settings.cores = 2;
                 settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
-                settings.extra-substituters = ["https://helix.cachix.org"];
-                settings.extra-trusted-public-keys = ["helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="];
+                settings.extra-substituters = [/*"https://helix.cachix.org"*/];
+                settings.extra-trusted-public-keys = [/*"helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="*/];
                 settings.log-lines = 50;
                 settings.max-free = 64 * 1024 * 1024 * 1024;
                 settings.system-features = ["kvm"];
@@ -920,7 +926,7 @@
                 */
                 xserver = {
                   autorun = false;
-                 displayManager.autoLogin.user = prefs.user.login;
+                  displayManager.autoLogin.user = prefs.user.login;
                   displayManager.autoLogin.enable = true;
                   enable = false;
                   enableCtrlAltBackspace = true;
@@ -1001,6 +1007,7 @@
               };
 
               environment.systemPackages = with pkgs; [
+                ldapsearch
                 _1password
                 aide
                 commitlint
@@ -1031,9 +1038,9 @@
       };
     };
 
-    nixosImages = {
-      laptop = self.nixosConfigurations.laptop.config.system.build.vmWithBootloader;
-    };
+    #  nixosImages = {
+    #    laptop = self.nixosConfigurations.laptop.config.system.build.vmWithBootloader;
+    #  };
 
     nixosModules = {
       sway = import ./desktop/module.nix;
