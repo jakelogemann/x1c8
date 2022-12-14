@@ -592,6 +592,7 @@
                 profileRelativeEnvVars.MANPATH = ["/man" "/share/man"];
                 profileRelativeEnvVars.PATH = ["/bin"];
                 shellAliases = {
+                  ldapsearch = "nix run ${prefs.repo.path}#ldapsearch -- -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
                   git-vars = "${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l' <(git var -l)";
                   l = "ls -alh";
                   la = "${lib.getExe pkgs.lsd} -a";
@@ -1459,6 +1460,10 @@
       nvim = self.lib.mkApp {
         drv = pkgs.neovim;
         exePath = "/bin/nvim";
+      };
+      ldapsearch = self.lib.mkApp {
+        drv = pkgs.openldap;
+        exePath = "/bin/ldapsearch";
       };
       default = self.lib.mkApp {drv = pkgs.system-cli;};
     });
