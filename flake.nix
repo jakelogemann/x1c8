@@ -248,7 +248,7 @@
             bin) echo "/run/current-system/sw/bin";;
             bins) lsd --no-symlink "$($0 bin)";;
             boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-            develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#$2";;
+            dev|develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#''${2:-default}";;
             edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && ${neovim}/bin/nvim ;;
             flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
             git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
@@ -1477,36 +1477,24 @@
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
 
-    devShells = self.lib.withPkgs (pkgs:
-      with pkgs; rec {
-        go = mkShell rec {
-          name = "my go env";
-          nativeBuildInputs = [my-commontools my-gotools neovim];
-          CGO_ENABLED = "0";
-          GO111MODULE = "on";
-          GOPROXY = "direct";
-          GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
-          GOFLAGS = "-mod=vendor -trimpath";
-          GONOPROXY = GOPRIVATE;
-          GONOSUMDB = GOPRIVATE;
-        };
-
-        rust = mkShell {
-          name = "my rust env";
-          nativeBuildInputs = [
-            my-commontools
-            my-rustools
-            neovim
-          ];
-        };
-
-        nix = mkShell {
-          name = "my nix env";
-          nativeBuildInputs = [my-commontools my-nixtools neovim];
-        };
-
-        default = go;
-      });
+    devShells = self.lib.withPkgs (pkgs: {
+      default = pkgs.mkShell rec {
+        name = "my work env";
+        CGO_ENABLED = "0";
+        GO111MODULE = "on";
+        GOPROXY = "direct";
+        GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+        GOFLAGS = "-mod=vendor -trimpath";
+        GONOPROXY = GOPRIVATE;
+        GONOSUMDB = GOPRIVATE;
+        nativeBuildInputs = with pkgs; [
+          my-commontools
+          my-gotools
+          neovim
+          my-rustools
+        ];
+      };
+    });
   };
   # vim:sts=2:et:ft=nix:fdm=indent:fdl=0
 }
