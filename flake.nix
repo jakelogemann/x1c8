@@ -220,48 +220,7 @@
     overlays = {
       rust = self.inputs.rust-overlay.overlays.default;
 
-      custom = next: prev: let
-        callPackage = prev.lib.callPackageWith (prev // {inherit self prefs;});
-      in rec {
-        system-cli = prev.writeShellApplication {
-          name = "system";
-          runtimeInputs = with prev; [
-            bat
-            git
-            lsd
-            nix
-            nixos-rebuild
-          ];
-          text = ''
-            [[ $# -gt 0 ]] || exec $0 help;
-            case $1 in
-            bin) echo "/run/current-system/sw/bin";;
-            bins) lsd --no-symlink "$($0 bin)";;
-            boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-            dev|develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#''${2:-default}";;
-            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR ;;
-            flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
-            git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
-            help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-            update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
-            pager) $0 tree | bat --file-name="$0 $*" --plain;;
-            repo|path|dir) echo "${prefs.repo.path}";;
-            tree) lsd --tree --no-symlink;;
-            shutdown|poweroff|reboot|journalctl) exec "$@";;
-              repl) nix repl ${(prev.writeText "repl.nix" ''
-                let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
-                 inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
-                 lib = pkgs.lib // flake.lib;
-                 inherit (config.networking) hostName;
-                 system = "${prev.system}";
-                 # commented, but viable alternative:
-                 ## flake = builtins.getFlake "${self}";
-              })
-            '')};;
-              *) $0 help && exit 127;;
-            esac'';
-        };
-
+      default = next: prev: rec {
         my-tools = prev.symlinkJoin {
           name = "my-tools";
           paths = with prev; [
@@ -371,6 +330,7 @@
           ];
         };
       };
+
       digitalocean = next: prev:
         with prev; {
           do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
@@ -981,7 +941,47 @@
                 };
               };
 
-              environment.systemPackages = with pkgs; [system-cli my-tools];
+              environment.systemPackages = with pkgs; [
+                my-tools
+                (writeShellApplication {
+                  name = "system";
+                  runtimeInputs = with pkgs; [
+                    bat
+                    git
+                    lsd
+                    nix
+                    nixos-rebuild
+                  ];
+                  text = ''
+                    [[ $# -gt 0 ]] || exec $0 help;
+                    case $1 in
+                    bin) echo "/run/current-system/sw/bin";;
+                    bins) lsd --no-symlink "$($0 bin)";;
+                    boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
+                    dev|develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#''${2:-default}";;
+                    edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR ;;
+                    flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
+                    git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
+                    help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
+                    update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
+                    pager) $0 tree | bat --file-name="$0 $*" --plain;;
+                    repo|path|dir) echo "${prefs.repo.path}";;
+                    tree) lsd --tree --no-symlink;;
+                    shutdown|poweroff|reboot|journalctl) exec "$@";;
+                    repl) nix repl ${(pkgs.writeText "repl.nix" ''
+                      let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
+                      inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
+                      lib = pkgs.lib // flake.lib;
+                      inherit (config.networking) hostName;
+                      system = "${pkgs.system}";
+                 # commented, but viable alternative:
+                 ## flake = builtins.getFlake "${self}";
+                      })
+                    '')};;
+                      *) $0 help && exit 127;;
+                      esac'';
+                    })
+              ];
               # This value determines the NixOS release from which the default
               # settings for stateful data, like file locations and database versions
               # on your system were taken. It‘s perfectly fine and recommended to leave
@@ -1004,10 +1004,6 @@
 
     lib = import ./lib.nix self;
 
-    packages = self.lib.eachSystemWithPkgs (pkgs: {
-      inherit (pkgs) system-cli;
-    });
-
     apps = self.lib.withPkgs (pkgs: {
       docc = self.lib.mkApp {
         drv = pkgs.do-internal;
@@ -1022,7 +1018,6 @@
         drv = pkgs.openldap;
         exePath = "/bin/ldapsearch";
       };
-      default = self.lib.mkApp {drv = pkgs.system-cli;};
     });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);

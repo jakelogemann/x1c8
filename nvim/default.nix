@@ -46,15 +46,15 @@
     ];
 
     configure.customRC = builtins.concatStringsSep "\n" [
-      # "lua vim.env.PATH = vim.env.PATH .. \":${symlinkJoin {
-      #   name = "extra-tools";
-      #   paths = builtins.attrValues (builtins.removeAttrs args [
-      #     "stdenv"
-      #     "symlinkJoin"
-      #     "neovim"
-      #     "vimPlugins"
-      #   ]);
-      # }}/bin\""
+      "lua vim.env.PATH = vim.env.PATH .. \":${symlinkJoin {
+        name = "extra-tools";
+        paths = builtins.attrValues (builtins.removeAttrs args [
+          "stdenv"
+          "symlinkJoin"
+          "neovim"
+          "vimPlugins"
+        ]);
+      }}/bin\""
       "luafile ${./config.lua}"
     ];
 

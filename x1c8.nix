@@ -2,7 +2,8 @@
 x1c8 contains the configuration that is specific to my Lenovo
 X1 Carbon (8th gen), but generic enough to perhaps reuse.
 */
-self: {
+{
+self,
   config,
   lib,
   pkgs,

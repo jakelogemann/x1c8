@@ -1,4 +1,5 @@
-self: {
+{
+  self,
   config,
   lib,
   pkgs,
