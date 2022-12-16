@@ -1363,72 +1363,7 @@
         ];
       };
 
-      user = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: let
-        inherit (prefs.user) login;
-      in {
-        users.users.${login} = {
-          group = login;
-          initialPassword = "";
-          home = "/home/${login}";
-          shell = pkgs.zsh;
-          uid = 1000;
-          isNormalUser = true;
-          packages = with pkgs; [
-            my-tools
-            _1password
-            aide
-            dogdns
-            glxinfo
-            commitlint
-            expect
-            graphviz
-          ];
-        };
-        nix.settings.allowed-users = [login];
-        nix.settings.trusted-users = [login];
-        users.groups.kvm.members = [login];
-        users.groups.users.members = [login];
-        users.groups.video.members = [login];
-        users.groups.wheel.members = [login];
-        users.groups.podman.members = [login];
-        users.groups.wireshark.members = [login];
-        users.groups.systemd-journal.members = [login];
-        users.groups.${login}.members = [login];
-        system.nixos.tags = [login];
-
-        security.sudo.extraRules = [
-          {
-            users = [prefs.user.login];
-            runAs = "root";
-            commands = lib.concatLists [
-              ["ALL"]
-
-              (builtins.map (name: {
-                  command = "/run/current-system/sw/bin/${name}";
-                  options = ["NOSETENV" "NOPASSWD"];
-                }) [
-                  "nix-collect-garbage"
-                  "poweroff"
-                  "reboot"
-                  "shutdown"
-                  "system"
-                  "systemd-cgls"
-                  "systemd-cgtop"
-                  "dmesg"
-                  "systemctl"
-                  "openconnect"
-                  "kill"
-                  "killall"
-                ])
-            ];
-          }
-        ];
-      };
+      user = import ./user.nix;
     };
 
     lib = import ./lib.nix self;
@@ -1474,5 +1409,5 @@
       };
     });
   };
-  # vim:sts=2:et:ft=nix:fdm=indent:fdl=0
+  # vim:sts=2:et:ft=nix:fdm=indent:fdl=1
 }
