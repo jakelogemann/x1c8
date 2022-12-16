@@ -223,17 +223,6 @@
       custom = next: prev: let
         callPackage = prev.lib.callPackageWith (prev // {inherit self prefs;});
       in rec {
-        gomod2nix = self.inputs.gomod2nix.packages.${prev.system}.default;
-        neovim = callPackage ./nvim {};
-        nixpkgs-lint = self.inputs.nixpkgs-lint.packages.${prev.system}.default;
-        helix = self.inputs.helix.packages.${prev.system}.helix;
-
-        ldapsearch = prev.writeShellApplication {
-          name = "ldapsearch";
-          runtimeInputs = with prev; [openldap];
-          text = "ldapsearch -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
-        };
-
         system-cli = prev.writeShellApplication {
           name = "system";
           runtimeInputs = with prev; [
@@ -250,7 +239,7 @@
             bins) lsd --no-symlink "$($0 bin)";;
             boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
             dev|develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#''${2:-default}";;
-            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && ${neovim}/bin/nvim ;;
+            edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR ;;
             flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
             git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
             help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
@@ -313,7 +302,6 @@
             kubectl
             nerdctl
             packer
-            neovim
             ossec
             pass
             w3m
@@ -355,8 +343,6 @@
             golangci-lint
             golangci-lint-langserver
             golint
-            gomod2nix
-            gomod2nix
             gopls
             goreleaser
             goss
@@ -508,8 +494,11 @@
         system = "x86_64-linux";
         specialArgs = {inherit self nixpkgs prefs system;};
         modules =
-          (builtins.attrValues self.nixosModules)
-          ++ [
+          [
+            ./desktop/module.nix
+            ./docn.nix
+            ./x1c8.nix
+            ./user.nix
             ({
               config,
               lib,
@@ -992,13 +981,7 @@
                 };
               };
 
-              environment.systemPackages = with pkgs; [
-                ldapsearch
-                system-cli
-                my-tools
-                neovim
-              ];
-
+              environment.systemPackages = with pkgs; [system-cli my-tools];
               # This value determines the NixOS release from which the default
               # settings for stateful data, like file locations and database versions
               # on your system were taken. It‘s perfectly fine and recommended to leave
@@ -1022,7 +1005,7 @@
     lib = import ./lib.nix self;
 
     packages = self.lib.eachSystemWithPkgs (pkgs: {
-      inherit (pkgs) neovim system-cli;
+      inherit (pkgs) system-cli;
     });
 
     apps = self.lib.withPkgs (pkgs: {
@@ -1034,10 +1017,6 @@
       do-internal = self.lib.mkApp {
         drv = pkgs.do-internal;
         exePath = "/bin/do-internal";
-      };
-      nvim = self.lib.mkApp {
-        drv = pkgs.neovim;
-        exePath = "/bin/nvim";
       };
       ldapsearch = self.lib.mkApp {
         drv = pkgs.openldap;
@@ -1058,7 +1037,7 @@
         GOFLAGS = "-mod=vendor -trimpath";
         GONOPROXY = GOPRIVATE;
         GONOSUMDB = GOPRIVATE;
-        nativeBuildInputs = with pkgs; [my-tools neovim];
+        nativeBuildInputs = with pkgs; [my-tools];
       };
     });
   };

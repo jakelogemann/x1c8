@@ -2,7 +2,6 @@
   /*
   non-dependent arguments
   */
-  self,
   stdenv,
   symlinkJoin,
   vimPlugins,
@@ -31,19 +30,7 @@
   shellcheck,
   shellharden,
   stylua,
-} @ args: let
-  extraTools = symlinkJoin {
-    name = "extra-tools";
-    paths = builtins.attrValues (builtins.removeAttrs args [
-      "stdenv"
-      "self"
-      "symlinkJoin"
-      "neovim"
-      "vimPlugins"
-    ]);
-  };
-in
-  neovim.override {
+} @ args: neovim.override {
     extraName = "-jlogemann";
     viAlias = true;
     vimAlias = true;
@@ -59,7 +46,15 @@ in
     ];
 
     configure.customRC = builtins.concatStringsSep "\n" [
-      "lua vim.env.PATH = vim.env.PATH .. \":${extraTools}/bin\""
+      # "lua vim.env.PATH = vim.env.PATH .. \":${symlinkJoin {
+      #   name = "extra-tools";
+      #   paths = builtins.attrValues (builtins.removeAttrs args [
+      #     "stdenv"
+      #     "symlinkJoin"
+      #     "neovim"
+      #     "vimPlugins"
+      #   ]);
+      # }}/bin\""
       "luafile ${./config.lua}"
     ];
 

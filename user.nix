@@ -1,4 +1,5 @@
 {
+  self,
   config,
   lib,
   pkgs,
@@ -27,6 +28,15 @@ in {
       commitlint
       expect
       graphviz
+      self.inputs.helix.packages.${pkgs.system}.helix
+      self.inputs.gomod2nix.packages.${pkgs.system}.default
+      self.inputs.nixpkgs-lint.packages.${pkgs.system}.default
+      # (pkgs.callPackage ./nvim {})
+      (writeShellApplication {
+        name = "ldapsearch";
+        runtimeInputs = [openldap];
+        text = "ldapsearch -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
+      })
     ];
   };
   nix.settings.allowed-users = [login];
