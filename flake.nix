@@ -1019,18 +1019,108 @@
     nixosModules = {
       sway = import ./desktop/module.nix;
 
-      dns = {
+      corp = {
         config,
         lib,
         pkgs,
         ...
-      }:
-        lib.mkIf config.services.dnscrypt-proxy2.enable {
-          networking.nameservers = ["127.0.0.1"];
-          # networking.resolvconf.enable = lib.mkForce false;
-          networking.networkmanager.dns = lib.mkForce "none";
-          # networking.useHostResolvConf = true;
-          systemd = {
+      }: {
+        assertions = lib.mapAttrsToList (message: assertion: {inherit assertion message;}) {
+          /*
+          if this module is included the following conditions must be
+          satisfied in order to build the machine:
+          */
+          "sshd is forbidden" = !config.services.sshd.enable;
+          "samba is disabled" = !config.services.samba.enable;
+          "avahi is disabled" = !config.services.avahi.enable;
+          "sudo is enabled" = config.security.sudo.enable;
+          # "kolide is enabled" = config.services.kolide-launcher.enable;
+        };
+        imports = [
+          self.inputs.do-nixpkgs.nixosModules.kolide-launcher
+          self.inputs.do-nixpkgs.nixosModules.sentinelone
+        ];
+        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
+        services.sentinelone.enable = false;
+        # services.kolide-launcher.enable = true;
+        nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
+        system.nixos.tags = ["digitalocean"];
+        networking.nameservers = ["127.0.0.1"];
+        # networking.resolvconf.enable = lib.mkForce false;
+        networking.networkmanager.dns = lib.mkForce "none";
+        # networking.useHostResolvConf = true;
+        networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
+        networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
+        networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
+        networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
+        environment.systemPackages = with pkgs; [
+          (cthulhu {})
+          do-nixpkgs.fly
+          staff-cert
+          dao
+          openconnect
+          (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
+          (writeShellScriptBin "ghe" "exec env GH_HOST=github.internal.digitalocean.com ${lib.getExe gh} \"$@\"")
+          (writeShellScriptBin "vault" "exec env VAULT_CACERT=${sammyca} VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200 ${lib.getExe vault} \"$@\"")
+          (writeShellScriptBin "vpn" ''
+            # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
+            [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
+            [[ -n "$USER" ]] || read -r -p "USER: " USER
+            [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
+            CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
+            PKG_DIR="$(dirname $(dirname $(readlink $(which openconnect))))"
+            declare -a vpn_args=( --protocol=gp )
+            vpn_args+=( --csd-wrapper=$PKG_DIR/libexec/openconnect/hipreport.sh )
+            vpn_args+=( -F _challenge:passwd="$MFA" )
+            vpn_args+=( --background )
+            vpn_args+=( --pid-file=$HOME/.local/vpn.pid )
+            vpn_args+=( --os=linux-64 )
+            vpn_args+=( --passwd-on-stdin )
+            vpn_args+=( -F _login:user="$USER" )
+            vpn_args+=( "$CONNECT_URL" )
+            set -x && sudo openconnect "''${vpn_args[@]}"
+          '')
+        ];
+        systemd = {
+          slices.compliance.enable = true;
+          services.sentinelone = lib.mkIf config.services.sentinelone.enable {
+            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
+            serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
+            serviceConfig.CPUWeight = lib.mkForce 10;
+            serviceConfig.Slice = "compliance.slice";
+            serviceConfig.CPUQuota = lib.mkForce "10%";
+            serviceConfig.DevicePolicy = "closed";
+            serviceConfig.PrivateDevices = false;
+            serviceConfig.PrivateMounts = false;
+            serviceConfig.PrivateTmp = false;
+            serviceConfig.PrivateIPC = true;
+            serviceConfig.PrivateUsers = false;
+            serviceConfig.ProtectHome = false;
+            serviceConfig.ProtectControlGroups = false;
+            serviceConfig.ProtectKernelModules = true;
+            serviceConfig.ProtectKernelTunables = true;
+          };
+          services.kolide-launcher = lib.mkIf config.services.kolide-launcher.enable {
+            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc" "/srv" "/sys" "/bin" "/mnt"];
+            serviceConfig.CPUWeight = 10;
+            serviceConfig.Slice = "compliance.slice";
+            serviceConfig.LockPersonality = true;
+            serviceConfig.CPUQuota = "10%";
+            serviceConfig.DevicePolicy = "closed";
+            serviceConfig.PrivateDevices = false;
+            serviceConfig.PrivateIPC = true;
+            serviceConfig.PrivateNetwork = true;
+            serviceConfig.PrivateMounts = false;
+            serviceConfig.PrivateTmp = true;
+            serviceConfig.PrivateUsers = false;
+            serviceConfig.ProtectHome = false;
+            serviceConfig.ProtectClock = true;
+            serviceConfig.ProtectSystem = true;
+            serviceConfig.ProtectProc = true;
+            serviceConfig.ProtectControlGroups = false;
+            serviceConfig.ProtectKernelModules = true;
+            serviceConfig.ProtectKernelTunables = true;
+          };
             slices.discovery.enable = true;
             services.dnscrypt-proxy2 = {
               serviceConfig.Slice = "discovery.slice";
@@ -1047,7 +1137,7 @@
               serviceConfig.ProtectKernelModules = true;
               serviceConfig.ProtectKernelTunables = true;
             };
-          };
+        };
 
           services.dnscrypt-proxy2.settings = {
             # Server Controls
@@ -1188,106 +1278,6 @@
               pkgs.writeText "blocked_names"
               (lib.concatStringsSep "\n" (builtins.map (b: builtins.readFile "${self.inputs.blocklists.outPath}/data/${b}/hosts") ["Adguard-cname" "URLHaus" "adaway.org"]));
           };
-        };
-      corp = {
-        config,
-        lib,
-        pkgs,
-        ...
-      }: {
-        assertions = lib.mapAttrsToList (message: assertion: {inherit assertion message;}) {
-          /*
-          if this module is included the following conditions must be
-          satisfied in order to build the machine:
-          */
-          "sshd is forbidden" = !config.services.sshd.enable;
-          "samba is disabled" = !config.services.samba.enable;
-          "avahi is disabled" = !config.services.avahi.enable;
-          "sudo is enabled" = config.security.sudo.enable;
-          # "kolide is enabled" = config.services.kolide-launcher.enable;
-        };
-        imports = [
-          self.inputs.do-nixpkgs.nixosModules.kolide-launcher
-          self.inputs.do-nixpkgs.nixosModules.sentinelone
-        ];
-        security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
-        services.sentinelone.enable = false;
-        # services.kolide-launcher.enable = true;
-        nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
-        system.nixos.tags = ["digitalocean"];
-        networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
-        networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
-        networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
-        networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
-        environment.systemPackages = with pkgs; [
-          (cthulhu {})
-          do-nixpkgs.fly
-          staff-cert
-          dao
-          openconnect
-          (writeShellScriptBin "jf" "exec docker run --rm -it --mount type=bind,source=\"$HOME/.jfrog\",target=/root/.jfrog 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2-jf' jf \"$@\"")
-          (writeShellScriptBin "ghe" "exec env GH_HOST=github.internal.digitalocean.com ${lib.getExe gh} \"$@\"")
-          (writeShellScriptBin "vault" "exec env VAULT_CACERT=${sammyca} VAULT_ADDR=https://vault-api.internal.digitalocean.com:8200 ${lib.getExe vault} \"$@\"")
-          (writeShellScriptBin "vpn" ''
-            # Example Usage:  op read ...PASSWD | MFA=839917 ENDPOINT=coffee-nyc3 USER=jlogemann vpn
-            [[ -n "$MFA" ]] || read -r -p "MFA: " MFA
-            [[ -n "$USER" ]] || read -r -p "USER: " USER
-            [[ -n "$ENDPOINT" ]] || read -r -p "ENDPOINT: " ENDPOINT
-            CONNECT_URL="https://$ENDPOINT.digitalocean.com/ssl-vpn"
-            PKG_DIR="$(dirname $(dirname $(readlink $(which openconnect))))"
-            declare -a vpn_args=( --protocol=gp )
-            vpn_args+=( --csd-wrapper=$PKG_DIR/libexec/openconnect/hipreport.sh )
-            vpn_args+=( -F _challenge:passwd="$MFA" )
-            vpn_args+=( --background )
-            vpn_args+=( --pid-file=$HOME/.local/vpn.pid )
-            vpn_args+=( --os=linux-64 )
-            vpn_args+=( --passwd-on-stdin )
-            vpn_args+=( -F _login:user="$USER" )
-            vpn_args+=( "$CONNECT_URL" )
-            set -x && sudo openconnect "''${vpn_args[@]}"
-          '')
-        ];
-        systemd = {
-          slices.compliance.enable = true;
-          services.sentinelone = lib.mkIf config.services.sentinelone.enable {
-            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
-            serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
-            serviceConfig.CPUWeight = lib.mkForce 10;
-            serviceConfig.Slice = "compliance.slice";
-            serviceConfig.CPUQuota = lib.mkForce "10%";
-            serviceConfig.DevicePolicy = "closed";
-            serviceConfig.PrivateDevices = false;
-            serviceConfig.PrivateMounts = false;
-            serviceConfig.PrivateTmp = false;
-            serviceConfig.PrivateIPC = true;
-            serviceConfig.PrivateUsers = false;
-            serviceConfig.ProtectHome = false;
-            serviceConfig.ProtectControlGroups = false;
-            serviceConfig.ProtectKernelModules = true;
-            serviceConfig.ProtectKernelTunables = true;
-          };
-          services.kolide-launcher = lib.mkIf config.services.kolide-launcher.enable {
-            serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc" "/srv" "/sys" "/bin" "/mnt"];
-            serviceConfig.CPUWeight = 10;
-            serviceConfig.Slice = "compliance.slice";
-            serviceConfig.LockPersonality = true;
-            serviceConfig.CPUQuota = "10%";
-            serviceConfig.DevicePolicy = "closed";
-            serviceConfig.PrivateDevices = false;
-            serviceConfig.PrivateIPC = true;
-            serviceConfig.PrivateNetwork = true;
-            serviceConfig.PrivateMounts = false;
-            serviceConfig.PrivateTmp = true;
-            serviceConfig.PrivateUsers = false;
-            serviceConfig.ProtectHome = false;
-            serviceConfig.ProtectClock = true;
-            serviceConfig.ProtectSystem = true;
-            serviceConfig.ProtectProc = true;
-            serviceConfig.ProtectControlGroups = false;
-            serviceConfig.ProtectKernelModules = true;
-            serviceConfig.ProtectKernelTunables = true;
-          };
-        };
       };
 
       x1c8 = import ./x1c8.nix self;
