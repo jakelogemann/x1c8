@@ -210,13 +210,7 @@
     nixpkgs,
     flake-utils,
     ...
-  }: let
-    /*
-    preferences are loaded from a TOML file located in this directory. the data
-    in here is free-form and should be kept as minimalist as possible.
-    */
-    prefs = pnix.lib.fromTOMLFile ./prefs.toml;
-  in {
+  }: {
     overlays = {
       rust = self.inputs.rust-overlay.overlays.default;
 
@@ -449,7 +443,7 @@
       */
       laptop = nixpkgs.lib.nixosSystem rec {
         system = "x86_64-linux";
-        specialArgs = {inherit self nixpkgs prefs system;};
+        specialArgs = {inherit self nixpkgs system;};
         modules = [
           ./desktop/module.nix
           ./docn.nix
@@ -679,7 +673,7 @@
 
             networking = {
               # dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
-              hostName = prefs.host.name;
+              hostName = "laptop";
               nameservers = ["8.8.8.8" "8.8.4.4"];
               domain = "local";
               enableIPv6 = true;
@@ -832,11 +826,11 @@
               lockKernelModules = true;
               pam.enableEcryptfs = true;
               pam.u2f.authFile = builtins.toFile "u2f-authfile" ''
-                ${prefs.user.login}:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence
+                jlogemann:PbfYUgHNUk54RUZu7mOz9DjZ1cYajfXJMQqpVH+jOgoBEyfDmH6JGoJy+zrixAkAjfJxJHdoI7AOhX3rvUfWyQ==,JzU6nKSnlWdd8kpjfIkihYV9AXxTAyNfzdF83haYD9fCsHoBfqKj/pw4xbkl+dl3nOGoOvvgUQcaFHgjVtwYVA==,es256,+presence
               '';
               pam.u2f.control = "sufficient";
               pam.u2f.enable = true;
-              polkit.adminIdentities = ["unix-user:${prefs.user.login}"];
+              polkit.adminIdentities = ["unix-user:jlogemann"];
               protectKernelImage = true;
               rtkit.enable = true;
               sudo.enable = true;
@@ -858,7 +852,7 @@
               */
               xserver = {
                 autorun = false;
-                displayManager.autoLogin.user = prefs.user.login;
+                displayManager.autoLogin.user = "jlogemann";
                 displayManager.autoLogin.enable = true;
                 enable = false;
                 enableCtrlAltBackspace = true;
@@ -953,20 +947,20 @@
                   case $1 in
                   bin) echo "/run/current-system/sw/bin";;
                   bins) lsd --no-symlink "$($0 bin)";;
-                  boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "${prefs.repo.path}" && nixos-rebuild --flake "$(pwd)#${prefs.host.name}" "$@" ;;
-                  dev|develop) [[ $UID -ne 0 ]] && nix develop "${prefs.repo.path}#''${2:-default}";;
-                  edit) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && $EDITOR ;;
-                  flake) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix "$@";;
-                  git) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && exec "$@";;
+                  boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "$HOME/laptop" && nixos-rebuild --flake "$(pwd)#laptop" "$@" ;;
+                  dev|develop) [[ $UID -ne 0 ]] && nix develop "$HOME/laptop#''${2:-default}";;
+                  edit) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && $EDITOR ;;
+                  flake) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && nix "$@";;
+                  git) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && exec "$@";;
                   help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-                  update) [[ $UID -ne 0 ]] && cd "${prefs.repo.path}" && nix flake "$@";;
+                  update) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && nix flake "$@";;
                   pager) $0 tree | bat --file-name="$0 $*" --plain;;
-                  repo|path|dir) echo "${prefs.repo.path}";;
+                  repo|path|dir) echo "$HOME/laptop";;
                   tree) lsd --tree --no-symlink;;
                   shutdown|poweroff|reboot|journalctl) exec "$@";;
                   repl) nix repl ${(pkgs.writeText "repl.nix" ''
-                         let flake = builtins.getFlake "${prefs.repo.path}"; in (flake.inputs // rec {
-                         inherit (flake.outputs.nixosConfigurations."${prefs.host.name}") pkgs options config;
+                         let flake = builtins.getFlake "$HOME/laptop"; in (flake.inputs // rec {
+                         inherit (flake.outputs.nixosConfigurations."laptop") pkgs options config;
                          lib = pkgs.lib // flake.lib;
                          inherit (config.networking) hostName;
                          system = "${pkgs.system}";
