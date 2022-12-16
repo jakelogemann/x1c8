@@ -938,7 +938,6 @@
 
               systemd = {
                 services.systemd-udev-settle.enable = false;
-                slices.compliance.enable = false;
                 services.sentinelone = {
                   serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
                   serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
@@ -995,53 +994,9 @@
 
               environment.systemPackages = with pkgs; [
                 ldapsearch
-                _1password
-                aide
-                commitlint
-                expect
-                graphviz
                 system-cli
                 my-tools
-                killall
-                bpftools
-                dmidecode
-                dnsutils
-                dogdns
-                glxinfo
-                hddtemp
-                ipmitool
-                lsb-release
-                lsof
-                lynis
-                mtr
-                pciutils
-                pinentry
-                pstree
-                psutils
-                shellcheck
-                sysstat
-                tree
-                usbutils
-                whois
-                wireguard-tools
-                buildah
-                firecracker
-                k9s
-                qemu_full
-                lima
-                self.inputs.cntr.packages.${pkgs.system}.cntr
-                skopeo
-                act
-                actionlint
-                docker-credential-helpers
-                kubectl
-                nerdctl
-                packer
                 neovim
-                ossec
-                pass
-                w3m
-                zstd
               ];
 
               # This value determines the NixOS release from which the default
@@ -1249,7 +1204,7 @@
           "samba is disabled" = !config.services.samba.enable;
           "avahi is disabled" = !config.services.avahi.enable;
           "sudo is enabled" = config.security.sudo.enable;
-          "kolide is enabled" = config.services.kolide-launcher.enable;
+          # "kolide is enabled" = config.services.kolide-launcher.enable;
         };
         imports = [
           self.inputs.do-nixpkgs.nixosModules.kolide-launcher
@@ -1257,7 +1212,7 @@
         ];
         security.pki.certificateFiles = [pkgs.do-nixpkgs.sammyca];
         services.sentinelone.enable = false;
-        services.kolide-launcher.enable = true;
+        # services.kolide-launcher.enable = true;
         nix.registry.do-nixpkgs.flake = self.inputs.do-nixpkgs;
         system.nixos.tags = ["digitalocean"];
         networking.hosts."162.243.188.132" = ["vpn-nyc3.digitalocean.com"];
@@ -1423,7 +1378,16 @@
           shell = pkgs.zsh;
           uid = 1000;
           isNormalUser = true;
-          packages = [pkgs.my-tools];
+          packages = with pkgs; [
+            my-tools
+            _1password
+            aide
+            dogdns
+            glxinfo
+            commitlint
+            expect
+            graphviz
+          ];
         };
         nix.settings.allowed-users = [login];
         nix.settings.trusted-users = [login];
