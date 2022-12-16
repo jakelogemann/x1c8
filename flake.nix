@@ -6,6 +6,7 @@
     nixos-hardware.url = "github:nixos/nixos-hardware";
     nixos-templates.url = "github:nixos/templates";
     pnix.url = "github:polis-dev/pnix";
+    flake-parts.url = "github:hercules-ci/flake-parts";
 
     nmd = {
       url = "gitlab:rycee/nmd";
@@ -227,9 +228,9 @@
         nixpkgs-lint = self.inputs.nixpkgs-lint.packages.${prev.system}.default;
         helix = self.inputs.helix.packages.${prev.system}.helix;
 
-        ldapsearch = prev.writeShellApplication  {
+        ldapsearch = prev.writeShellApplication {
           name = "ldapsearch";
-          runtimeInputs = with prev; [ openldap ];
+          runtimeInputs = with prev; [openldap];
           text = "ldapsearch -xLLLH ldaps://ldap-primary.internal.digitalocean.com -b ou=Groups,dc=internal,dc=digitalocean,dc=com";
         };
 
@@ -272,74 +273,25 @@
             esac'';
         };
 
-        my-nixtools = prev.symlinkJoin {
-          name = "my-nixtools";
+        my-tools = prev.symlinkJoin {
+          name = "my-tools";
           paths = with prev; [
-            alejandra
-            nixos-rebuild
-            nixpkgs-lint
-            nvd
-            nix
-          ];
-        };
-
-        my-rustools = prev.symlinkJoin {
-          name = "my-rustools";
-          paths = with prev; [
-            cargo-bloat
-            cargo-deny
-            cargo-edit
-            cargo-vet
-            cargo-expand
-            cargo-outdated
-            cargo-public-api
-            cargo-tarpaulin
-            cargo-udeps
-            cargo-watch
-            cargo-web
-            helix
-            llvm
-            llvm-manpages
-            rust-analyzer
-            rustup
-            rusty-man
-          ];
-        };
-
-        my-virtools = prev.symlinkJoin {
-          name = "my-virtools";
-          paths = with prev; [
-            act
-            actionlint
-            buildah
-            docker-credential-helpers
-            firecracker
-            k9s
-            kubectl
-            nerdctl
-            packer
-            qemu_full
-            lima
-            self.inputs.cntr.packages.${prev.system}.cntr
-            skopeo
-          ];
-        };
-
-        my-systools = prev.symlinkJoin {
-          name = "my-systools";
-          paths = with prev; [
+            _1password
+            aide
+            commitlint
+            expect
+            graphviz
             killall
-            bpftools
             dmidecode
             dnsutils
             dogdns
-            glxinfo
-            hddtemp
+            #glxinfo
+            #hddtemp
             ipmitool
             lsb-release
             lsof
             lynis
-            mtr
+            #mtr
             pciutils
             pinentry
             pstree
@@ -350,18 +302,44 @@
             usbutils
             whois
             wireguard-tools
-          ];
-        };
+            buildah
+            k9s
+            #lima
+            self.inputs.cntr.packages.${pkgs.system}.cntr
+            skopeo
+            act
+            actionlint
+            docker-credential-helpers
+            kubectl
+            nerdctl
+            packer
+            neovim
+            ossec
+            pass
+            w3m
+            zstd
 
-        my-commontools = prev.symlinkJoin {
-          name = "my-commontools";
-          paths = with prev; [
-            fd
+            alejandra
             bat
+            cargo-bloat
+            cargo-deny
+            cargo-edit
+            cargo-expand
+            cargo-outdated
+            cargo-public-api
+            cargo-tarpaulin
+            cargo-udeps
+            cargo-vet
+            cargo-watch
+            cargo-web
             coreutils
             cue
+            cuelsp
+            cuetools
             dasel
+            delve
             direnv
+            fd
             file
             gh
             git-cliff
@@ -370,29 +348,7 @@
             gnupg
             gnused
             gnutar
-            gum
-            jq
-            lsd
-            navi
-            ranger
-            ripgrep
-            skim
-            starship
-            unzip
-            zip
-            zoxide
-          ];
-        };
-
-        my-gotools = prev.symlinkJoin {
-          name = "my-gotools";
-          paths = with prev; [
             go
-            cuelsp
-            cuetools
-            delve
-            grpcurl
-            gomod2nix
             go-cve-search
             godef
             gofumpt
@@ -400,9 +356,32 @@
             golangci-lint-langserver
             golint
             gomod2nix
+            gomod2nix
             gopls
             goreleaser
             goss
+            grpcurl
+            gum
+            helix
+            jq
+            llvm
+            llvm-manpages
+            lsd
+            navi
+            nix
+            nixos-rebuild
+            nixpkgs-lint
+            nvd
+            ranger
+            ripgrep
+            rust-analyzer
+            rustup
+            rusty-man
+            skim
+            starship
+            unzip
+            zip
+            zoxide
           ];
         };
       };
@@ -412,7 +391,7 @@
           inherit (self.inputs.do-nixpkgs.packages.${prev.system}) fly sammyca;
 
           staff-cert = self.inputs.do-nixpkgs.packages.${prev.system}.staff-cert.overrideAttrs (old: {
-            src =  builtins.fetchurl {
+            src = builtins.fetchurl {
               url = "https://security.nyc3.digitaloceanspaces.com/artifacts/staff-cert/release/staff_cert_linux_nocgo";
               sha256 = "sha256:0pi383lsbjj0fgad2w1b77k1akkn0n7y0pnqymnmzmyjv5lw7x7g";
             };
@@ -541,7 +520,7 @@
               time.hardwareClockInLocalTime = true;
               time.timeZone = "America/New_York";
               services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
-
+              services.fprintd.enable = true;
 
               boot = {
                 binfmt.emulatedSystems = ["aarch64-linux"];
@@ -798,8 +777,16 @@
                 settings.auto-optimise-store = true;
                 settings.cores = 2;
                 settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
-                settings.extra-substituters = [/*"https://helix.cachix.org"*/];
-                settings.extra-trusted-public-keys = [/*"helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="*/];
+                settings.extra-substituters = [
+                  /*
+                  "https://helix.cachix.org"
+                  */
+                ];
+                settings.extra-trusted-public-keys = [
+                  /*
+                  "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
+                  */
+                ];
                 settings.log-lines = 50;
                 settings.max-free = 64 * 1024 * 1024 * 1024;
                 settings.system-features = ["kvm"];
@@ -951,7 +938,7 @@
 
               systemd = {
                 services.systemd-udev-settle.enable = false;
-                slices.compliance.enable = true;
+                slices.compliance.enable = false;
                 services.sentinelone = {
                   serviceConfig.ReadOnlyPaths = ["/etc" "/home" "/opt" "/nix" "/boot" "/proc"];
                   serviceConfig.ReadWritePaths = ["/opt/sentinelone"];
@@ -1014,10 +1001,42 @@
                 expect
                 graphviz
                 system-cli
-                my-commontools
-                my-systools
-                my-nixtools
-                my-virtools
+                my-tools
+                killall
+                bpftools
+                dmidecode
+                dnsutils
+                dogdns
+                glxinfo
+                hddtemp
+                ipmitool
+                lsb-release
+                lsof
+                lynis
+                mtr
+                pciutils
+                pinentry
+                pstree
+                psutils
+                shellcheck
+                sysstat
+                tree
+                usbutils
+                whois
+                wireguard-tools
+                buildah
+                firecracker
+                k9s
+                qemu_full
+                lima
+                self.inputs.cntr.packages.${pkgs.system}.cntr
+                skopeo
+                act
+                actionlint
+                docker-credential-helpers
+                kubectl
+                nerdctl
+                packer
                 neovim
                 ossec
                 pass
@@ -1404,6 +1423,7 @@
           shell = pkgs.zsh;
           uid = 1000;
           isNormalUser = true;
+          packages = [pkgs.my-tools];
         };
         nix.settings.allowed-users = [login];
         nix.settings.trusted-users = [login];
@@ -1416,7 +1436,6 @@
         users.groups.systemd-journal.members = [login];
         users.groups.${login}.members = [login];
         system.nixos.tags = [login];
-
 
         security.sudo.extraRules = [
           {
@@ -1487,12 +1506,7 @@
         GOFLAGS = "-mod=vendor -trimpath";
         GONOPROXY = GOPRIVATE;
         GONOSUMDB = GOPRIVATE;
-        nativeBuildInputs = with pkgs; [
-          my-commontools
-          my-gotools
-          neovim
-          my-rustools
-        ];
+        nativeBuildInputs = with pkgs; [my-tools neovim];
       };
     });
   };
