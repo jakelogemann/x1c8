@@ -48,25 +48,25 @@ self: {
     linuxPackages_latest.acpi_call
     linuxPackages_latest.cpupower
     linuxPackages_latest.tp_smapi
-          # linuxPackages_latest.bpftrace
-          tpm2-tools
-          tpm2-tss
-          i2c-tools
-        ];
+    # linuxPackages_latest.bpftrace
+    tpm2-tools
+    tpm2-tss
+    i2c-tools
+  ];
 
-        boot.kernelModules = [
-          "acpi_call"
-          "br_netfilter"
-          "btusb"
-          "drm"
-          "ext2"
-          "i915"
-          "iwlmvm"
-          "kvm-intel"
-          "mei_me"
-          "sd_mod"
-          "snd_hda_intel"
-          "tpm_tis"
-          "xhci_pci"
-        ];
-      }
+  boot.kernelModules = [
+    "acpi_call"
+    "br_netfilter"
+    "btusb"
+    "drm"
+    "ext2"
+    "i915"
+    "iwlmvm"
+    "kvm-intel"
+    "mei_me"
+    "sd_mod"
+    "snd_hda_intel"
+    "tpm_tis"
+    "xhci_pci"
+  ];
+}

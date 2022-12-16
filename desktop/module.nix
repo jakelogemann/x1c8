@@ -452,12 +452,12 @@ in {
           on-click = "pavucontrol";
         };
 
-        "custom/vpn"= {
+        "custom/vpn" = {
           format = "{icon}";
           interval = 10;
           format-icons.up = "旅";
           format-icons.down = "";
-          exec  = pkgs.writeShellScript "vpn-is-up" ''
+          exec = pkgs.writeShellScript "vpn-is-up" ''
             if [[ $(pgrep -c openconnect) -ne "0" ]]
             then echo -e "VPN\nVPN is online\nup\n"
             else echo -e "VPN\nVPN is offline\ndown\n"
@@ -577,31 +577,31 @@ in {
       ];
 
       "xdg/wofi/style.css".text = with cfg.colors; ''
-          * { font-family: '${cfg.fonts.default}', 'Fira Code Nerd Font'; font-size: 20px; }
-          #entry:selected, #entry:selected * { background-color: #${bright0}; color: #${bright4}; }
-          #scroll { margin: 0px; border: none; }
-          window {
-            margin: 0px;
-            border: 1px solid #bd93f9;
-            background-color: #${background};
-          }
-          #input, #inner-box {
-            margin: 5px;
-            border: none;
-            color: #${foreground};
-            background-color: #${regular0};
-          }
-          #outer-box {
-            margin: 5px;
-            border: none;
-            background-color: #${background};
-          }
-          #text {
-            margin: 5px 10px;
-            border: none;
-            color: #${foreground};
-          }
-        '';
+        * { font-family: '${cfg.fonts.default}', 'Fira Code Nerd Font'; font-size: 20px; }
+        #entry:selected, #entry:selected * { background-color: #${bright0}; color: #${bright4}; }
+        #scroll { margin: 0px; border: none; }
+        window {
+          margin: 0px;
+          border: 1px solid #bd93f9;
+          background-color: #${background};
+        }
+        #input, #inner-box {
+          margin: 5px;
+          border: none;
+          color: #${foreground};
+          background-color: #${regular0};
+        }
+        #outer-box {
+          margin: 5px;
+          border: none;
+          background-color: #${background};
+        }
+        #text {
+          margin: 5px 10px;
+          border: none;
+          color: #${foreground};
+        }
+      '';
 
       "xdg/foot/foot.ini".text = ''
         # -*- conf -*-
@@ -755,7 +755,6 @@ in {
         select-word-whitespace=Control+BTN_LEFT-2
         select-row=BTN_LEFT-3
       '';
-
     };
   };
 }
