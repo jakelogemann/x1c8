@@ -33,6 +33,15 @@
   networking.hosts."162.243.188.133" = ["coffee-nyc3.digitalocean.com"];
   networking.hosts."138.68.32.133" = ["coffee-sfo2.digitalocean.com"];
   networking.hosts."138.68.32.132" = ["vpn-sfo2.digitalocean.com"];
+  environment.variables = rec {
+    CGO_ENABLED = "0";
+    GO111MODULE = "on";
+    GOPROXY = "direct";
+    GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
+    GOFLAGS = "-mod=vendor -trimpath";
+    GONOPROXY = GOPRIVATE;
+    GONOSUMDB = GOPRIVATE;
+  };
   environment.systemPackages = with pkgs; [
     (cthulhu {})
     do-nixpkgs.fly

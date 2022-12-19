@@ -20,7 +20,107 @@ in {
     uid = 1000;
     isNormalUser = true;
     packages = with pkgs; [
-      my-tools
+          _1password
+          aide
+          commitlint
+          expect
+          graphviz
+          killall
+          dmidecode
+          dnsutils
+          dogdns
+          #glxinfo
+          #hddtemp
+          ipmitool
+          lsb-release
+          lsof
+          lynis
+          #mtr
+          pciutils
+          pinentry
+          pstree
+          psutils
+          shellcheck
+          sysstat
+          tree
+          usbutils
+          whois
+          wireguard-tools
+          buildah
+          k9s
+          skopeo
+          act
+          actionlint
+          docker-credential-helpers
+          kubectl
+          nerdctl
+          packer
+          ossec
+          pass
+          w3m
+          zstd
+
+          alejandra
+          bat
+          cargo-bloat
+          cargo-deny
+          cargo-edit
+          cargo-expand
+          cargo-outdated
+          cargo-public-api
+          cargo-tarpaulin
+          cargo-udeps
+          cargo-vet
+          cargo-watch
+          cargo-web
+          coreutils
+          cue
+          cuelsp
+          cuetools
+          dasel
+          delve
+          direnv
+          fd
+          file
+          gh
+          git-cliff
+          gnugrep
+          gnumake
+          gnupg
+          gnused
+          gnutar
+          go
+          go-cve-search
+          godef
+          gofumpt
+          golangci-lint
+          golangci-lint-langserver
+          golint
+          gopls
+          goreleaser
+          goss
+          grpcurl
+          gum
+          helix
+          jq
+          llvm
+          llvm-manpages
+          lsd
+          navi
+          nix
+          nixos-rebuild
+          nixpkgs-lint
+          nvd
+          ranger
+          ripgrep
+          rust-analyzer
+          rustup
+          rusty-man
+          skim
+          starship
+          unzip
+          zip
+          zoxide
       _1password
       aide
       dogdns
@@ -28,10 +128,8 @@ in {
       commitlint
       expect
       graphviz
-      self.inputs.helix.packages.${pkgs.system}.helix
-      self.inputs.gomod2nix.packages.${pkgs.system}.default
-      self.inputs.nixpkgs-lint.packages.${pkgs.system}.default
-      # (pkgs.callPackage ./nvim {})
+      terraform
+
       (writeShellApplication {
         name = "ldapsearch";
         runtimeInputs = [openldap];

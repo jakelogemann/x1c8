@@ -213,116 +213,9 @@
   }: {
     overlays.rust = self.inputs.rust-overlay.overlays.default;
     overlays.default = next: prev: rec {
-      my-tools = prev.symlinkJoin {
-        name = "my-tools";
-        paths = with prev; [
-          _1password
-          aide
-          commitlint
-          expect
-          graphviz
-          killall
-          dmidecode
-          dnsutils
-          dogdns
-          #glxinfo
-          #hddtemp
-          ipmitool
-          lsb-release
-          lsof
-          lynis
-          #mtr
-          pciutils
-          pinentry
-          pstree
-          psutils
-          shellcheck
-          sysstat
-          tree
-          usbutils
-          whois
-          wireguard-tools
-          buildah
-          k9s
-          #lima
-          self.inputs.cntr.packages.${pkgs.system}.cntr
-          skopeo
-          act
-          actionlint
-          docker-credential-helpers
-          kubectl
-          nerdctl
-          packer
-          ossec
-          pass
-          w3m
-          zstd
-
-          alejandra
-          bat
-          cargo-bloat
-          cargo-deny
-          cargo-edit
-          cargo-expand
-          cargo-outdated
-          cargo-public-api
-          cargo-tarpaulin
-          cargo-udeps
-          cargo-vet
-          cargo-watch
-          cargo-web
-          coreutils
-          cue
-          cuelsp
-          cuetools
-          dasel
-          delve
-          direnv
-          fd
-          file
-          gh
-          git-cliff
-          gnugrep
-          gnumake
-          gnupg
-          gnused
-          gnutar
-          go
-          go-cve-search
-          godef
-          gofumpt
-          golangci-lint
-          golangci-lint-langserver
-          golint
-          gopls
-          goreleaser
-          goss
-          grpcurl
-          gum
-          helix
-          jq
-          llvm
-          llvm-manpages
-          lsd
-          navi
-          nix
-          nixos-rebuild
-          nixpkgs-lint
-          nvd
-          ranger
-          ripgrep
-          rust-analyzer
-          rustup
-          rusty-man
-          skim
-          starship
-          unzip
-          zip
-          zoxide
-        ];
-      };
-
       do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
+
+      inherit (self.inputs.cntr.packages.${prev.system}) cntr;
       inherit (self.inputs.do-nixpkgs.packages.${prev.system}) fly sammyca;
 
       staff-cert = self.inputs.do-nixpkgs.packages.${prev.system}.staff-cert.overrideAttrs (old: {
@@ -632,6 +525,8 @@
                 branches = "branch --all";
                 head-refs = "for-each-ref --format='%(refname:short)' refs/heads/ :";
                 l = "log --pretty=oneline --graph --abbrev-commit";
+                skip = "update-index --skip-worktree";
+                unskip = "update-index --no-skip-worktree";
                 list-vars = "!${lib.getExe pkgs.bat} -l=ini --file-name 'git var -l (sorted)' <(git var -l | sort)";
                 quick-rebase = "rebase --interactive --root --autosquash --autostash";
                 remotes = "remote --verbose";
@@ -929,7 +824,6 @@
           };
 
           environment.systemPackages = with pkgs; [
-            my-tools
             (writeShellApplication {
               name = "system";
               runtimeInputs = with pkgs; [
@@ -981,20 +875,6 @@
         })
       ];
     };
-
-    devShells = self.lib.withPkgs (pkgs: {
-      default = pkgs.mkShell rec {
-        name = "my work env";
-        CGO_ENABLED = "0";
-        GO111MODULE = "on";
-        GOPROXY = "direct";
-        GOPRIVATE = "*.internal.digitalocean.com,github.com/digitalocean";
-        GOFLAGS = "-mod=vendor -trimpath";
-        GONOPROXY = GOPRIVATE;
-        GONOSUMDB = GOPRIVATE;
-        nativeBuildInputs = with pkgs; [my-tools];
-      };
-    });
 
     formatter = self.lib.withPkgs (pkgs: pkgs.alejandra);
     lib = import ./lib.nix self;
