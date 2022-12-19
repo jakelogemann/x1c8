@@ -941,16 +941,17 @@
               ];
               text = ''
                 [[ $# -gt 0 ]] || exec $0 help;
+                cd "/home/jlogemann/laptop"
                 case $1 in
                 bin) echo "/run/current-system/sw/bin";;
                 bins) lsd --no-symlink "$($0 bin)";;
-                boot|build|build-vm*|dry-activate|dry-build|test|switch) cd "$HOME/laptop" && nixos-rebuild --flake "$(pwd)#laptop" "$@" ;;
+                boot|build|build-vm*|dry-activate|dry-build|test|switch)  nixos-rebuild --flake "$(pwd)#laptop" "$@" ;;
                 dev|develop) [[ $UID -ne 0 ]] && nix develop "$HOME/laptop#''${2:-default}";;
-                edit) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && $EDITOR ;;
-                flake) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && nix "$@";;
-                git) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && exec "$@";;
+                edit) [[ $UID -ne 0 ]] &&  $EDITOR ;;
+                flake) [[ $UID -ne 0 ]] &&  nix "$@";;
+                git) [[ $UID -ne 0 ]] &&  exec "$@";;
                 help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-                update) [[ $UID -ne 0 ]] && cd "$HOME/laptop" && nix flake "$@";;
+                update) [[ $UID -ne 0 ]] &&  nix flake "$@";;
                 pager) $0 tree | bat --file-name="$0 $*" --plain;;
                 repo|path|dir) echo "$HOME/laptop";;
                 tree) lsd --tree --no-symlink;;
