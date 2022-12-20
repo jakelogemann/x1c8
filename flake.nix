@@ -399,9 +399,9 @@
             doc.enable = true;
             enable = true;
             man.enable = true;
-            man.generateCaches = false;
-            man.man-db.enable = true;
-            nixos.includeAllModules = true;
+            man.generateCaches = true;
+            man.man-db.enable = false;
+            nixos.includeAllModules = false;
             nixos.options.warningsAreErrors = false;
           };
 
@@ -588,7 +588,7 @@
               allowedTCPPorts = [];
               allowedUDPPorts = [];
               autoLoadConntrackHelpers = false;
-              checkReversePath = "loose";
+              checkReversePath = false;
               enable = true;
               extraPackages = with pkgs; [ipset];
               logRefusedConnections = true;

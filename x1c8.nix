@@ -30,6 +30,17 @@ X1 Carbon (8th gen), but generic enough to perhaps reuse.
   hardware.opengl.extraPackages = [pkgs.intel-compute-runtime];
   hardware.pulseaudio.enable = true;
   hardware.bluetooth.enable = true;
+  hardware.bluetooth.settings.General.AlwaysPairable = true;
+  hardware.bluetooth.settings.General.Class = "0x00000000" /*0x000c010c*/;
+  hardware.bluetooth.settings.General.ControllerMode = "dual";
+  hardware.bluetooth.settings.General.DiscoverableTimeout = 3600;
+  hardware.bluetooth.settings.General.Experimental = true;
+  hardware.bluetooth.settings.General.FastConnectable = true;
+  hardware.bluetooth.settings.General.KernelExperimental = true;
+  hardware.bluetooth.settings.General.MultiProfile = "multiple";
+  hardware.bluetooth.settings.General.PairableTimeout = 3600;
+  hardware.bluetooth.settings.Policy.AutoEnable = true;
+  hardware.bluetooth.settings.Policy.ResumeDelay = 5;
   hardware.uinput.enable = true;
   networking.wireless.interfaces = ["wlan0"];
   networking.wireless.iwd.enable = true;
