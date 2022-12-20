@@ -137,6 +137,14 @@
       flake = false;
     };
 
+    edge-loadbalancers = {
+      type = "github";
+      host = "github.internal.digitalocean.com";
+      owner = "digitalocean";
+      repo = "edge-loadbalancers";
+      flake = false;
+    };
+
     qemu = {
       type = "github";
       host = "github.internal.digitalocean.com";

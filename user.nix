@@ -20,6 +20,7 @@ in {
     uid = 1000;
     isNormalUser = true;
     packages = with pkgs; [
+
       #glxinfo
       #hddtemp
       #mtr
@@ -81,6 +82,7 @@ in {
       gum
       helix
       ipmitool
+      jless
       jq
       k9s
       killall
@@ -92,6 +94,7 @@ in {
       lsof
       lynis
       navi
+      neovim
       nerdctl
       nix
       nixos-rebuild
@@ -124,7 +127,7 @@ in {
       zip
       zoxide
       zstd
-      neovim
+
       (writeShellApplication {
         name = "ldapsearch";
         runtimeInputs = [openldap];
