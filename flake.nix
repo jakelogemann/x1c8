@@ -344,10 +344,10 @@
       system = "x86_64-linux";
       specialArgs = {inherit self nixpkgs system;};
       modules = [
-        ./desktop/module.nix
-        ./docn.nix
-        ./x1c8.nix
-        ./user.nix
+        ./modules/desktop/module.nix
+        ./modules/docn.nix
+        ./modules/x1c8.nix
+        ./modules/user.nix
         ({
           config,
           lib,
