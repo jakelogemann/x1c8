@@ -212,6 +212,7 @@
     ...
   }: {
     overlays.rust = self.inputs.rust-overlay.overlays.default;
+    overlays.neovim = import ./overlays/neovim.nix;
     overlays.default = next: prev: rec {
       do-nixpkgs = self.inputs.do-nixpkgs.packages.${prev.system};
 
@@ -346,6 +347,8 @@
           ...
         }: {
           hardware.gpgSmartcards.enable = true;
+          hardware.logitech.wireless.enable = true;
+          hardware.logitech.wireless.enableGraphical = true;
           time.hardwareClockInLocalTime = true;
           time.timeZone = "America/New_York";
           services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
@@ -585,15 +588,15 @@
               allowedTCPPorts = [];
               allowedUDPPorts = [];
               autoLoadConntrackHelpers = false;
-              checkReversePath = false;
+              checkReversePath = "loose";
               enable = true;
               extraPackages = with pkgs; [ipset];
               logRefusedConnections = true;
-              logRefusedPackets = true;
+              logRefusedPackets = false;
               logRefusedUnicastsOnly = true;
               logReversePathDrops = true;
               pingLimit = "--limit 1/minute --limit-burst 5";
-              rejectPackets = true;
+              rejectPackets = false;
             };
 
             #   resolvconf.enable = lib.mkForce false;
@@ -847,27 +850,25 @@
                 [[ $# -gt 0 ]] || exec $0 help;
                 cd "/home/jlogemann/laptop"
                 case $1 in
-                bin) echo "/run/current-system/sw/bin";;
-                bins) lsd --no-symlink "$($0 bin)";;
-                boot|build|build-vm*|dry-activate|dry-build|test|switch)  nixos-rebuild --flake "$(pwd)#laptop" "$@" ;;
-                dev|develop) [[ $UID -ne 0 ]] && nix develop "$HOME/laptop#''${2:-default}";;
-                edit) [[ $UID -ne 0 ]] &&  $EDITOR ;;
-                flake) [[ $UID -ne 0 ]] &&  nix "$@";;
-                git) [[ $UID -ne 0 ]] &&  exec "$@";;
-                help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
-                update) [[ $UID -ne 0 ]] &&  nix flake "$@";;
-                pager) $0 tree | bat --file-name="$0 $*" --plain;;
-                repo|path|dir) echo "$HOME/laptop";;
-                tree) lsd --tree --no-symlink;;
-                shutdown|poweroff|reboot|journalctl) exec "$@";;
-                repl) nix repl ${(pkgs.writeText "repl.nix" ''
-                       let flake = builtins.getFlake "$HOME/laptop"; in (flake.inputs // rec {
+                  bin) echo "/run/current-system/sw/bin";;
+                  bins) lsd --no-symlink "$($0 bin)";;
+                  boot|build|build-vm*|dry-activate|dry-build|test|switch)  nixos-rebuild --flake "$(pwd)#laptop" "$@" ;;
+                  dev|develop) [[ $UID -ne 0 ]] && nix develop "$HOME/laptop#''${2:-default}";;
+                  edit) [[ $UID -ne 0 ]] &&  $EDITOR ;;
+                  flake) [[ $UID -ne 0 ]] &&  nix "$@";;
+                  git) [[ $UID -ne 0 ]] &&  exec "$@";;
+                  help) bat -l=bash --style=header-filename,grid,snip "$0" -r=8: ;;
+                  update) [[ $UID -ne 0 ]] &&  nix flake "$@";;
+                  pager) $0 tree | bat --file-name="$0 $*" --plain;;
+                  repo|path|dir) echo "$HOME/laptop";;
+                  tree) lsd --tree --no-symlink;;
+                  shutdown|poweroff|reboot|journalctl) exec "$@";;
+                  repl) nix repl ${(pkgs.writeText "repl.nix" ''
+                       let flake = builtins.getFlake "/home/jlogemann/laptop"; in (flake.inputs // rec {
                        inherit (flake.outputs.nixosConfigurations."laptop") pkgs options config;
                        lib = pkgs.lib // flake.lib;
                        inherit (config.networking) hostName;
                        system = "${pkgs.system}";
-                  # commented, but viable alternative:
-                  ## flake = builtins.getFlake "${self}";
                        })
                 '')};;
                   *) $0 help && exit 127;;
