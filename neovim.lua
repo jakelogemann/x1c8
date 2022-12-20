@@ -19,19 +19,19 @@ vim.g.load_black = false -- disable black
 vim.g.loaded_2html_plugin = true -- disable 2html
 vim.g.loaded_getscript = true -- disable getscript
 vim.g.loaded_getscriptPlugin = true -- disable getscript
-vim.g.loaded_gzip = true -- disable gzip
+--vim.g.loaded_gzip = true -- disable gzip
 vim.g.loaded_logipat = true -- disable logipat
 vim.g.loaded_matchit = true -- disable matchit
-vim.g.loaded_netrwFileHandlers = true -- disable netrw
-vim.g.loaded_netrwPlugin = true -- disable netrw
-vim.g.loaded_netrwSettngs = true -- disable netrw
-vim.g.loaded_remote_plugins = true -- disable remote plugins
-vim.g.loaded_tar = true -- disable tar
-vim.g.loaded_tarPlugin = true -- disable tar
+--vim.g.loaded_netrwFileHandlers = true -- disable netrw
+--vim.g.loaded_netrwPlugin = true -- disable netrw
+--vim.g.loaded_netrwSettngs = true -- disable netrw
+--vim.g.loaded_remote_plugins = true -- disable remote plugins
+--vim.g.loaded_tar = true -- disable tar
+--vim.g.loaded_tarPlugin = true -- disable tar
 vim.g.loaded_vimball = true -- disable vimball
 vim.g.loaded_vimballPlugin = true -- disable vimball
-vim.g.loaded_zip = true -- disable zip
-vim.g.loaded_zipPlugin = true -- disable zip
+--vim.g.loaded_zip = true -- disable zip
+--vim.g.loaded_zipPlugin = true -- disable zip
 vim.g.mapleader = " " -- set leader key
 vim.g.nvim_tree_quit_on_open = 1
 vim.g.nvim_tree_side = "right"
@@ -296,6 +296,20 @@ utils.setup("lspconfig", function(lspconfig)
 	vim.lsp.handlers["textDocument/signatureHelp"] =
 		vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" })
 
+	lspconfig["gopls"].setup({
+	  cmd = {"gopls", "serve"},
+	  filetypes = {"go", "gomod"},
+	  root_dir = require('lspconfig/util').root_pattern("go.work", "go.mod", ".git"),
+	  settings = {
+	    gopls = {
+	      analyses = {
+	        unusedparams = true,
+	      },
+	    },
+	    staticcheck = true,
+	  }
+	})
+
 	lspconfig["sumneko_lua"].setup({
 		settings = {
 			Lua = {
@@ -337,6 +351,9 @@ utils.setup("lspconfig", function(lspconfig)
 		settings = {
 			gopls = {
 				experimentalPostfixCompletions = true,
+				experimentalPackageCacheKey = true,
+				completeUnimported = true,
+				memoryMode = "DegradeClosed",
 				analyses = {
 					unusedparams = true,
 					shadow = true,

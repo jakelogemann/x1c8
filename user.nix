@@ -161,6 +161,9 @@ in {
               gnutar
               nix-linter
               jq
+              go-tools
+              go_1_19
+              golint
               yamllint
               yaml-language-server
               rnix-lsp
@@ -168,6 +171,7 @@ in {
               rust-analyzer
               neovim
               nodejs
+              gopls
               ripgrep
               shellcheck
               shellharden
@@ -242,7 +246,6 @@ in {
             vim-caddyfile
             vim-easy-align
             vim-gnupg
-            vim-go
             vim-lastplace
             vim-nftables
             vim-nix
