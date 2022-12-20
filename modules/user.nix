@@ -161,12 +161,15 @@ in {
             "reboot"
             "shutdown"
             "system"
+            "systemd-cat"
             "systemd-cgls"
             "systemd-cgtop"
             "dmesg"
             "systemctl"
             "openconnect"
             "kill"
+            "pkill"
+            "nixos-rebuild"
             "killall"
           ])
       ];
