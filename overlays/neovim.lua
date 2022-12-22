@@ -52,6 +52,7 @@ vim.opt.expandtab = true -- Enable the use of space in tab
 vim.opt.fileencoding = "utf-8" -- File content encoding for the buffer
 vim.opt.fillchars = { eob = " " } -- Disable `~` on nonexistent lines
 vim.opt.foldmethod = "syntax"
+vim.opt.foldenable = false
 vim.opt.history = 100 -- Number of commands to remember in a history table
 vim.opt.hlsearch = true
 vim.opt.ignorecase = true -- Case insensitive searching
@@ -264,6 +265,7 @@ utils.setup("nvim-treesitter", {
 utils.setup("lspconfig", function(lspconfig)
 	-- Add additional capabilities supported by nvim-cmp
 	local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
 	-- Use an on_attach function to only map the following keys
 	-- after the language server attaches to the current buffer
 	local on_attach = function(client, bufnr)
@@ -297,20 +299,36 @@ utils.setup("lspconfig", function(lspconfig)
 		vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" })
 
 	lspconfig["gopls"].setup({
+		on_attach = on_attach,
+		capabilities = capabilities,
 	  cmd = {"gopls", "serve"},
 	  filetypes = {"go", "gomod"},
 	  root_dir = require('lspconfig/util').root_pattern("go.work", "go.mod", ".git"),
 	  settings = {
 	    gopls = {
+	      -- gopls settings doc:  https://github.com/golang/tools/blob/master/gopls/doc/settings.md
+	      completeUnimported = false,
+	      experimentalPackageCacheKey = true,
+	      memoryMode = "DegradeClosed",
+	      gofumpt = true,
+	      staticcheck = true,
+	      hints = {
+	        parameterNames = true,
+	        rangeVariableTypes = true,
+	        constantValues = true,
+	        assignVariableTypes = true,
+	      },
+	      directoryFilters = {"-**/node_modules"},
 	      analyses = {
 	        unusedparams = true,
 	      },
 	    },
-	    staticcheck = true,
 	  }
 	})
 
 	lspconfig["sumneko_lua"].setup({
+		on_attach = on_attach,
+		capabilities = capabilities,
 		settings = {
 			Lua = {
 				runtime = { version = "LuaJIT" },
@@ -819,6 +837,25 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 			vim.fn.winrestview(winview)
 		end
 	end,
+	group = "config",
+})
+
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.go",
+	desc = "Organize Go imports.",
+	callback = function ()
+    local params = vim.lsp.util.make_range_params()
+    params.context = {only = {"source.organizeImports"}}
+    local result = vim.lsp.buf_request_sync(0, "textDocument/codeAction", params, 0)
+    for cid, res in pairs(result or {}) do
+      for _, r in pairs(res.result or {}) do
+        if r.edit then
+          local enc = (vim.lsp.get_client_by_id(cid) or {}).offset_encoding or "utf-16"
+          vim.lsp.util.apply_workspace_edit(r.edit, enc)
+        end
+      end
+    end
+  end,
 	group = "config",
 })
 

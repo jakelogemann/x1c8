@@ -11,13 +11,12 @@ with super; {
         gitlint
         gnumake
         gnupg
-        gnused
-        gnutar
         nix-linter
         jq
         go-tools
         go_1_19
         golint
+        gofumpt
         yamllint
         yaml-language-server
         rnix-lsp

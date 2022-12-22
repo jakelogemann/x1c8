@@ -20,6 +20,10 @@ in {
     uid = 1000;
     isNormalUser = true;
     packages = with pkgs; [
+      fish
+      fishPlugins.sponge
+      fishPlugins.pure
+      fishPlugins.fzf-fish
 
       #glxinfo
       #hddtemp
