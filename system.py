@@ -14,14 +14,6 @@ USER = os.environ.get("USER", "nobody")
 SCRIPT = pathlib.Path(__file__).absolute()
 REPO = pathlib.Path(__file__).absolute().parent
 
-__doc__ = """Interface for managing {REPO}.
-
-I always said I'd replace myself with a "small bash script"; I was so close. I
-should have known it'd be python...
-
-
-""".format(**locals())
-
 
 def deps():
     """
@@ -118,8 +110,17 @@ def main():
     except Exception as e:
         print("Could not import typer (is it installed?): ", e)
         return None
+    # prepare our command-line app's options.
+    cli_opts = dict(no_args_is_help=True)
+    cli_opts["rich_markup_mode"] = "rich"
+    cli_opts["add_completion"] = False
+    cli_opts["help"] = """Interface for managing {REPO}.""".format(**globals())
+    cli_opts["epilog"] = """
+    I always said I'd replace myself "with a small bash script";
+    I was so close. I should have known it'd be python...
+    """
     # define our command-line application.
-    cli = Typer(help=__doc__, no_args_is_help=True)
+    cli = Typer(**cli_opts)
     # add all commands to the command-line application we defined.
     for cmd in [deps, edit, shell, outputs]:
         cli.command()(cmd)
