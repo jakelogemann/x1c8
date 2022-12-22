@@ -2,11 +2,6 @@
 #! nix-shell -i python3 -p python3 python3Packages.typer python3Packages.ipython
 # -*- coding: utf-8 -*-
 # ===================================================
-# Quick Setup:
-#  - copy this script to somewhere on your $PATH and mark it executable.
-#  - `pip install -U "typer[all]" IPython requests`
-#
-# ===================================================
 
 __doc__ = """An example app.
 
