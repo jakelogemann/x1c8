@@ -3,12 +3,6 @@
 # -*- coding: utf-8 -*-
 # ===================================================
 
-__doc__ = """An example app.
-
-I always said I'd replace myself with a "small bash script"; I was so close. I
-should have known it'd be python...
-"""
-
 import os
 import pathlib
 import platform
@@ -18,13 +12,29 @@ EDITOR = os.environ.get("EDITOR", "nvim")
 PAGER = os.environ.get("PAGER", "bat")
 USER = os.environ.get("USER", "nobody")
 SCRIPT = pathlib.Path(__file__).absolute()
+REPO = pathlib.Path(__file__).absolute().parent
+
+__doc__ = """Interface for managing {REPO}.
+
+I always said I'd replace myself with a "small bash script"; I was so close. I
+should have known it'd be python...
 
 
-def say(something: str):
+""".format(**locals())
+
+
+def deps():
     """
-    say something!
+    prints the system dependencies as reported by nix.
     """
-    print(f"I say: {something}")
+    return subprocess.call(["nix", "flake", "metadata"])
+
+
+def outputs():
+    """
+    prints the system outputs as reported by nix.
+    """
+    return  subprocess.call(["nix", "flake", "show"])
 
 
 def edit(file: str = str(SCRIPT), editor: str = EDITOR):
@@ -35,18 +45,8 @@ def edit(file: str = str(SCRIPT), editor: str = EDITOR):
     subprocess.call([editor, file])
 
 
-def cat(file: str = str(SCRIPT), pager: str = PAGER):
-    """
-    quickly print a given file with the default pager; or a pager you
-    specify.
-    """
-    subprocess.call([pager, file])
-
-
 def shell():
-    """
-    Open an interactive IPython REPL to "play" with this CLI.
-    """
+    """Open interactive IPython shell."""
     import IPython
     import traitlets
 
@@ -121,8 +121,10 @@ def main():
     # define our command-line application.
     cli = Typer(help=__doc__, no_args_is_help=True)
     # add all commands to the command-line application we defined.
-    for cmd in [say, edit, cat, shell]:
+    for cmd in [deps, edit, shell, outputs]:
         cli.command()(cmd)
+    # ensure the script is always run from the repo's directory.
+    os.chdir(REPO)
     # finally, execute the finished command-line application.
     return cli()
 
