@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#! /usr/bin/env nix-shell
+#! nix-shell -i python3 -p python3 python3Packages.typer python3Packages.ipython
 # -*- coding: utf-8 -*-
 # ===================================================
 # Quick Setup:
@@ -109,7 +110,7 @@ def shell():
         "from pprint import pp",
         "from pathlib import Path",
     ]
-    ipy_args = dict(config=cfg, argv=[], user_ns=locals())
+    ipy_args = dict(config=cfg, argv=[], user_ns=globals())
     return IPython.start_ipython(**ipy_args)
 
 
