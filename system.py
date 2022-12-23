@@ -52,16 +52,39 @@ class Flake:
         return "{}#{}".format(REPO, HOST)
 
     @classmethod
-    def outputs(cls):
+    def get_outputs(cls):
         if cls._outputs is None:
-            cls._outputs = json.loads(subprocess.getoutput("nix flake metadata --quiet --json {}".format(REPO)))
+            cls._outputs = json.loads(subprocess.getoutput("nix flake show --quiet --json {}".format(REPO)))
         return cls._outputs
 
     @classmethod
-    def inputs(cls):
+    def get_inputs(cls):
         if cls._inputs is None:
-            cls._inputs = json.loads(subprocess.getoutput("nix flake show --quiet --json {}".format(REPO)))
+            cls._inputs = json.loads(subprocess.getoutput("nix flake metadata --quiet --json {}".format(REPO)))
         return cls._inputs
+
+    @cli.command()
+    def outputs():
+        """
+        prints the system outputs as reported by nix.
+        """
+        data = Flake.get_outputs()
+        print(data)
+
+    @cli.command()
+    def inputs():
+        """
+        prints the system dependencies as reported by nix.
+        """
+        data = Flake.get_inputs()
+        print(data)
+
+    @cli.command()
+    def edit_flake(editor: str = EDITOR):
+        """
+        Edit flake.nix in EDITOR.
+        """
+        subprocess.call([editor, "{}/flake.nix".format(REPO)])
 
 
 class NixOS:
@@ -78,24 +101,7 @@ class NixOS:
     def rebuild(subcmd: RebuildCommand = "build"):
         """Wraps `nixos-rebuild`."""
 
-        return subprocess.run(["nixos-rebuild", "--flake", NixFlake.uri(), subcmd.value])
-
-@cli.command()
-def deps():
-    """
-    prints the system dependencies as reported by nix.
-    """
-    return subprocess.call(["nix", "flake", "metadata"])
-
-
-@cli.command()
-def outputs():
-    """
-    prints the system outputs as reported by nix.
-    """
-    s = _get_flake_stuff()
-
-
+        return subprocess.run(["nixos-rebuild", "--flake", Flake.uri(), subcmd.value])
 
 @cli.command()
 def edit(file: str = str(SCRIPT), editor: str = EDITOR):
