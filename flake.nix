@@ -627,19 +627,13 @@
             registry.nixpkgs.flake = self.inputs.nixpkgs;
             settings.allow-dirty = true;
             settings.auto-optimise-store = true;
+            settings.use-cgroups = true;
             settings.cores = 2;
-            settings.experimental-features = ["nix-command" "flakes" "ca-derivations"];
-            settings.extra-substituters = [
-              /*
-              "https://helix.cachix.org"
-              */
-            ];
-            settings.extra-trusted-public-keys = [
-              /*
-              "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
-              */
-            ];
+            settings.experimental-features = ["nix-command" "flakes" "ca-derivations" "cgroups"];
+            settings.extra-substituters = [];
+            settings.extra-trusted-public-keys = [];
             settings.log-lines = 50;
+            settings.tarball-ttl = 60 * 60 * 24 * 365;
             settings.max-free = 64 * 1024 * 1024 * 1024;
             settings.system-features = ["kvm"];
             settings.warn-dirty = false;
