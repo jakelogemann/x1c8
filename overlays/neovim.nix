@@ -11,7 +11,6 @@ with super; {
         gitlint
         gnumake
         gnupg
-        nix-linter
         jq
         go-tools
         go_1_19

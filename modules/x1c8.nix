@@ -53,7 +53,6 @@ X1 Carbon (8th gen), but generic enough to perhaps reuse.
 
   boot.extraModprobeConfig = builtins.concatStringsSep "\n" [
     "options kvm_intel nested=1"
-    "options iwlwifi disable_11ax=1"
   ];
 
   boot.extraModulePackages = with pkgs; [

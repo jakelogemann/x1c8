@@ -627,8 +627,10 @@
             registry.nixpkgs.flake = self.inputs.nixpkgs;
             settings.allow-dirty = true;
             settings.auto-optimise-store = true;
+            settings.preallocate-contents = true;
             settings.use-cgroups = true;
             settings.cores = 2;
+            settings.connect-timeout = 30;
             settings.experimental-features = ["nix-command" "flakes" "ca-derivations" "cgroups"];
             settings.extra-substituters = [];
             settings.extra-trusted-public-keys = [];
