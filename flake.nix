@@ -360,6 +360,9 @@
           time.hardwareClockInLocalTime = true;
           time.timeZone = "America/New_York";
           services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
+          services.mingetty.autologinUser = "jlogemann";
+          services.kmscon.enable = true;
+          services.kmscon.autologinUser = "jlogemann";
           services.fprintd.enable = true;
 
           boot = {

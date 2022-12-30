@@ -30,6 +30,7 @@ X1 Carbon (8th gen), but generic enough to perhaps reuse.
 
     extraModprobeConfig = builtins.concatStringsSep "\n" [
       "options kvm_intel nested=1"
+      "options iwlwifi bt_coex_active=0 swcrypto=0 disable_11ax=0 uapsd_disable=0"
     ];
 
     extraModulePackages = with pkgs; [
