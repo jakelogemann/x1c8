@@ -46,6 +46,8 @@ X1 Carbon (8th gen), but generic enough to perhaps reuse.
     kernelModules = pkgs.lib.unique (builtins.concatLists (builtins.attrValues kMod));
     kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
     kernelParams = ["i8042.reset=1" "i8042.nomux=1"];
+    loader.systemd-boot.configurationLimit = 10;
+    loader.grub.configurationLimit = 10;
   };
 
   system.nixos.tags = ["x1c8"];

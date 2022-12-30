@@ -360,9 +360,20 @@
           time.hardwareClockInLocalTime = true;
           time.timeZone = "America/New_York";
           services.kolide-launcher.secretFilepath = "/home/jlogemann/.do/kolide.secret";
-          services.mingetty.autologinUser = "jlogemann";
-          services.kmscon.enable = true;
-          services.kmscon.autologinUser = "jlogemann";
+          services.getty = {
+            autologinUser = "jlogemann";
+          };
+          services.kmscon = {
+            enable = false;
+            hwRender = true;
+            extraOptions = "--term xterm-256color";
+            fonts = [{ name = "DaddyTimeMono Nerd Font"; package = pkgs.nerdfonts; }];
+            extraConfig = ''
+              font-size=14
+              xkb-options=ctrl:nocaps
+            '';
+            autologinUser = "jlogemann";
+          };
           services.fprintd.enable = true;
 
           boot = {
@@ -590,7 +601,6 @@
           networking = {
             # dhcpcd.extraConfig = lib.mkForce "nohook resolv.conf";
             hostName = "laptop";
-            nameservers = ["8.8.8.8" "8.8.4.4"];
             domain = "local";
             enableIPv6 = true;
 
@@ -598,7 +608,7 @@
               allowPing = true;
               allowedTCPPorts = [];
               allowedUDPPorts = [];
-              autoLoadConntrackHelpers = false;
+              autoLoadConntrackHelpers = true;
               checkReversePath = false;
               enable = true;
               extraPackages = with pkgs; [ipset];
@@ -616,7 +626,21 @@
             #   networkmanager.enable = true;
             #   useHostResolvConf = true;
             useNetworkd = true;
+            dhcpcd.enable = false;
             usePredictableInterfaceNames = true;
+            nameservers = ["8.8.8.8" "8.8.4.4"];
+
+            interfaces = {
+              enp45s0u2u3 = {
+                ipv4.addresses = [{ address="192.168.0.56"; prefixLength = 24; }];
+                ipv4.routes = [{ address="192.168.0.0"; prefixLength = 24; via = "192.168.0.1"; options.scope = "global"; }];
+              };
+
+              wlan0 = {
+                ipv4.addresses = [{ address="192.168.8.26"; prefixLength = 24; }];
+                ipv4.routes = [{ address="192.168.8.0"; prefixLength = 24; via = "192.168.8.1"; options.scope = "global"; }];
+              };
+            };
           };
 
           nix = {
