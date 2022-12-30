@@ -1,6 +1,6 @@
 [
 {
-  "id" : "computer",
+  "id" : "laptop",
   "class" : "system",
   "claimed" : true,
   "handle" : "DMI:0012",
@@ -8,7 +8,7 @@
   "product" : "20UAS8CK00 (LENOVO_MT_20UA_BU_Think_FM_ThinkPad X1 Carbon Gen 8)",
   "vendor" : "LENOVO",
   "version" : "ThinkPad X1 Carbon Gen 8",
-  "serial" : "[REMOVED]",
+  "serial" : "PF22Y83Y",
   "width" : 64,
   "configuration" : {
     "administrator_password" : "enabled",
@@ -16,7 +16,7 @@
     "family" : "ThinkPad X1 Carbon Gen 8",
     "power-on_password" : "disabled",
     "sku" : "LENOVO_MT_20UA_BU_Think_FM_ThinkPad X1 Carbon Gen 8",
-    "uuid" : "[REMOVED]"
+    "uuid" : "CC050CF7-372B-B211-A85C-ACC198DB4995"
   },
   "capabilities" : {
     "smbios-3.2.0" : "SMBIOS version 3.2.0",
@@ -33,7 +33,7 @@
       "vendor" : "LENOVO",
       "physid" : "0",
       "version" : "SDK0J40697 WIN",
-      "serial" : "[REMOVED]",
+      "serial" : "L1HF0B904XE",
       "slot" : "Not Available"        {
           "id" : "memory",
           "class" : "memory",
@@ -51,7 +51,7 @@
               "description" : "Row of chips LPDDR3 Synchronous 2133 MHz (0.5 ns)",
               "vendor" : "Samsung",
               "physid" : "0",
-              "serial" : "[REMOVED]",
+              "serial" : "00000000",
               "slot" : "ChannelA-DIMM0",
               "units" : "bytes",
               "size" : 8589934592,
@@ -66,7 +66,7 @@
               "description" : "Row of chips LPDDR3 Synchronous 2133 MHz (0.5 ns)",
               "vendor" : "Samsung",
               "physid" : "1",
-              "serial" : "[REMOVED]",
+              "serial" : "00000000",
               "slot" : "ChannelB-DIMM0",
               "units" : "bytes",
               "size" : 8589934592,
@@ -149,10 +149,10 @@
           "physid" : "f",
           "businfo" : "cpu@0",
           "version" : "Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz",
-          "serial" : "[REMOVED]",
+          "serial" : "None",
           "slot" : "U3E1",
           "units" : "Hz",
-          "size" : 3400417000,
+          "size" : 3400114000,
           "capacity" : 4900000000,
           "width" : 64,
           "clock" : 100000000,
@@ -489,7 +489,7 @@
                       "physid" : "9",
                       "businfo" : "usb@1:9",
                       "version" : "0.00",
-                      "serial" : "[REMOVED]",
+                      "serial" : "0ee448297336",
                       "configuration" : {
                         "maxpower" : "100mA",
                         "speed" : "12Mbit/s"
@@ -572,7 +572,7 @@
               "businfo" : "pci@0000:00:14.3",
               "logicalname" : "wlan0",
               "version" : "00",
-              "serial" : "[REMOVED]",
+              "serial" : "fc:44:82:de:8b:3b",
               "width" : 64,
               "clock" : 33000000,
               "configuration" : {
@@ -580,7 +580,7 @@
                 "driver" : "iwlwifi",
                 "driverversion" : "6.0.12",
                 "firmware" : "72.daa05125.0 QuZ-a0-hr-b0-72.u",
-                "ip" : "[REMOVED]",
+                "ip" : "192.168.8.32",
                 "latency" : "0",
                 "link" : "yes",
                 "multicast" : "yes",
@@ -699,7 +699,7 @@
                   "businfo" : "pci@0000:03:00.0",
                   "logicalname" : "/dev/nvme0",
                   "version" : "11170101",
-                  "serial" : "[REMOVED]",
+                  "serial" : "2043AX456514",
                   "width" : 64,
                   "clock" : 33000000,
                   "configuration" : {
@@ -765,7 +765,7 @@
                           "logicalname" : ["/dev/nvme0n1p1", "/boot"],
                           "dev" : "259:1",
                           "version" : "FAT16",
-                          "serial" : "[REMOVED]",
+                          "serial" : "6696-7f45",
                           "size" : 523231232,
                           "capacity" : 524287488,
                           "configuration" : {
@@ -793,7 +793,7 @@
                           "businfo" : "nvme@0:1,2",
                           "logicalname" : "/dev/nvme0n1p2",
                           "dev" : "259:2",
-                          "serial" : "[REMOVED]",
+                          "serial" : "c680bcae-9d30-4845-825c-225666887138",
                           "size" : 511584501248,
                           "capacity" : 511584501248,
                           "width" : 1473870656,
@@ -1137,7 +1137,7 @@
               "businfo" : "pci@0000:00:1f.6",
               "logicalname" : "enp0s31f6",
               "version" : "00",
-              "serial" : "[REMOVED]",
+              "serial" : "54:05:db:e3:54:90",
               "units" : "bit/s",
               "capacity" : 1000000000,
               "width" : 32,
