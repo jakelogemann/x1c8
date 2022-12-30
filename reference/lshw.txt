@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-id:            computer
+id:            laptop
 description:   Notebook
 product:       20UAS8CK00 (LENOVO_MT_20UA_BU_Think_FM_ThinkPad X1 Carbon Gen 8)
 vendor:        LENOVO
 version:       ThinkPad X1 Carbon Gen 8
-serial:        [REMOVED]
+serial:        PF22Y83Y
 width:         64 bits
 capabilities:  smbios-3.2.0 dmi-3.2.0 smp vsyscall32
 
@@ -14,7 +14,7 @@ capabilities:  smbios-3.2.0 dmi-3.2.0 smp vsyscall32
 configuration: family                 = ThinkPad X1 Carbon Gen 8
                power-on_password      = disabled
                sku                    = LENOVO_MT_20UA_BU_Think_FM_ThinkPad X1 Carbon Gen 8
-               uuid                   = [REMOVED]
+               uuid                   = CC050CF7-372B-B211-A85C-ACC198DB4995
 
 
 
@@ -24,7 +24,7 @@ product:     20UAS8CK00
 vendor:      LENOVO
 physical id: 0
 version:     SDK0J40697 WIN
-serial:      [REMOVED]
+serial:      L1HF0B904XE
 slot:        Not Available
 
 
@@ -39,7 +39,7 @@ id:          bank:0
 description: Row of chips LPDDR3 Synchronous 2133 MHz (0.5 ns)
 vendor:      Samsung
 physical id: 0
-serial:      [REMOVED]
+serial:      00000000
 slot:        ChannelA-DIMM0
 size:        8GiB
 width:       64 bits
@@ -50,7 +50,7 @@ id:          bank:1
 description: Row of chips LPDDR3 Synchronous 2133 MHz (0.5 ns)
 vendor:      Samsung
 physical id: 1
-serial:      [REMOVED]
+serial:      00000000
 slot:        ChannelB-DIMM0
 size:        8GiB
 width:       64 bits
@@ -100,7 +100,7 @@ vendor:        Intel Corp.
 physical id:   f
 bus info:      cpu@0
 version:       Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz
-serial:        [REMOVED]
+serial:        None
 slot:          U3E1
 size:          3400MHz
 capacity:      4900MHz
@@ -282,7 +282,7 @@ description:   Generic USB device
 physical id:   9
 bus info:      usb@1:9
 version:       0.00
-serial:        [REMOVED]
+serial:        0ee448297336
 capabilities:  usb-2.00
 
 configuration: maxpower = 100mA
@@ -344,7 +344,7 @@ physical id:   14.3
 bus info:      pci@0000:00:14.3
 logical name:  wlan0
 version:       00
-serial:        [REMOVED]
+serial:        fc:44:82:de:8b:3b
 width:         64 bits
 clock:         33MHz
 capabilities:  pm msi pciexpress msix bus_master cap_list ethernet physical wireless
@@ -353,7 +353,7 @@ capabilities:  pm msi pciexpress msix bus_master cap_list ethernet physical wire
                driver        = iwlwifi
                driverversion = 6.0.12
                firmware      = 72.daa05125.0 QuZ-a0-hr-b0-72.u
-configuration: ip            = [REMOVED]
+configuration: ip            = 192.168.8.32
                latency       = 0
                link          = yes
                multicast     = yes
@@ -448,7 +448,7 @@ physical id:   0
 bus info:      pci@0000:03:00.0
 logical name:  /dev/nvme0
 version:       11170101
-serial:        [REMOVED]
+serial:        2043AX456514
 width:         64 bits
 clock:         33MHz
 capabilities:  nvme pm msi msix pciexpress bus_master cap_list
@@ -500,7 +500,7 @@ bus info:      nvme@0:1,1
 logical name:  /dev/nvme0n1p1
 logical name:  /boot
 version:       FAT16
-serial:        [REMOVED]
+serial:        6696-7f45
 size:          498MiB
 capacity:      499MiB
 capabilities:  boot fat initialized
@@ -521,7 +521,7 @@ description:   EFI partition
 physical id:   2
 bus info:      nvme@0:1,2
 logical name:  /dev/nvme0n1p2
-serial:        [REMOVED]
+serial:        c680bcae-9d30-4845-825c-225666887138
 size:          476GiB
 capacity:      476GiB
 width:         1473870656 bits
@@ -798,7 +798,7 @@ physical id:   1f.6
 bus info:      pci@0000:00:1f.6
 logical name:  enp0s31f6
 version:       00
-serial:        [REMOVED]
+serial:        54:05:db:e3:54:90
 capacity:      1Gbit/s
 width:         32 bits
 clock:         33MHz
