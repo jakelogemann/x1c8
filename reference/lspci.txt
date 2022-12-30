@@ -1,0 +1,26 @@
+00:00.0 Host bridge: Intel Corporation Comet Lake-U v1 4c Host Bridge/DRAM Controller (rev 0c)
+00:02.0 VGA compatible controller: Intel Corporation CometLake-U GT2 [UHD Graphics] (rev 02)
+00:04.0 Signal processing controller: Intel Corporation Xeon E3-1200 v5/E3-1500 v5/6th Gen Core Processor Thermal Subsystem (rev 0c)
+00:08.0 System peripheral: Intel Corporation Xeon E3-1200 v5/v6 / E3-1500 v5 / 6th/7th/8th Gen Core Processor Gaussian Mixture Model
+00:12.0 Signal processing controller: Intel Corporation Comet Lake Thermal Subsytem
+00:14.0 USB controller: Intel Corporation Comet Lake PCH-LP USB 3.1 xHCI Host Controller
+00:14.2 RAM memory: Intel Corporation Comet Lake PCH-LP Shared SRAM
+00:14.3 Network controller: Intel Corporation Comet Lake PCH-LP CNVi WiFi
+00:15.0 Serial bus controller: Intel Corporation Serial IO I2C Host Controller
+00:15.1 Serial bus controller: Intel Corporation Comet Lake Serial IO I2C Host Controller
+00:16.0 Communication controller: Intel Corporation Comet Lake Management Engine Interface
+00:1d.0 PCI bridge: Intel Corporation Comet Lake PCI Express Root Port #9 (rev f0)
+00:1d.4 PCI bridge: Intel Corporation Comet Lake PCI Express Root Port #13 (rev f0)
+00:1f.0 ISA bridge: Intel Corporation Comet Lake PCH-LP LPC Premium Controller/eSPI Controller
+00:1f.3 Audio device: Intel Corporation Comet Lake PCH-LP cAVS
+00:1f.4 SMBus: Intel Corporation Comet Lake PCH-LP SMBus Host Controller
+00:1f.5 Serial bus controller: Intel Corporation Comet Lake SPI (flash) Controller
+00:1f.6 Ethernet controller: Intel Corporation Ethernet Connection (10) I219-V
+03:00.0 Non-Volatile memory controller: Sandisk Corp WD Black SN750 / PC SN730 NVMe SSD
+05:00.0 PCI bridge: Intel Corporation JHL6540 Thunderbolt 3 Bridge (C step) [Alpine Ridge 4C 2016] (rev 02)
+06:00.0 PCI bridge: Intel Corporation JHL6540 Thunderbolt 3 Bridge (C step) [Alpine Ridge 4C 2016] (rev 02)
+06:01.0 PCI bridge: Intel Corporation JHL6540 Thunderbolt 3 Bridge (C step) [Alpine Ridge 4C 2016] (rev 02)
+06:02.0 PCI bridge: Intel Corporation JHL6540 Thunderbolt 3 Bridge (C step) [Alpine Ridge 4C 2016] (rev 02)
+06:04.0 PCI bridge: Intel Corporation JHL6540 Thunderbolt 3 Bridge (C step) [Alpine Ridge 4C 2016] (rev 02)
+07:00.0 System peripheral: Intel Corporation JHL6540 Thunderbolt 3 NHI (C step) [Alpine Ridge 4C 2016] (rev 02)
+2d:00.0 USB controller: Intel Corporation JHL6540 Thunderbolt 3 USB Controller (C step) [Alpine Ridge 4C 2016] (rev 02)
