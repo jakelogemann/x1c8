@@ -626,6 +626,7 @@
             optimise.dates = ["daily"];
             registry.nixpkgs.flake = self.inputs.nixpkgs;
             settings.allow-dirty = true;
+            settings.warn-dirty = true;
             settings.auto-optimise-store = true;
             settings.preallocate-contents = true;
             settings.use-cgroups = true;
@@ -635,10 +636,9 @@
             settings.extra-substituters = [];
             settings.extra-trusted-public-keys = [];
             settings.log-lines = 50;
-            settings.tarball-ttl = 60 * 60 * 24 * 365;
+            settings.tarball-ttl = (((60 * 60) * 24) * 365) * 5;
             settings.max-free = 64 * 1024 * 1024 * 1024;
             settings.system-features = ["kvm"];
-            settings.warn-dirty = false;
           };
 
           nixpkgs.config.allowUnfree = true;
@@ -774,6 +774,7 @@
           };
 
           swapDevices = [{device = "/dev/disk/by-uuid/e3b45cba-578e-46b9-8633-c6b67f9a556d";}];
+          users.users.root.shell = pkgs.fish;
           users.groups.users = {};
           users.groups.wheel = {};
 
