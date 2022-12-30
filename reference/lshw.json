@@ -23,7 +23,7 @@
     "dmi-3.2.0" : "DMI version 3.2.0",
     "smp" : "Symmetric Multi-Processing",
     "vsyscall32" : "32-bit processes"
-  }    {
+  },    {
       "id" : "core",
       "class" : "bus",
       "claimed" : true,
